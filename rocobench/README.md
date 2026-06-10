@@ -9,5 +9,19 @@ RoCoBench is a multi-robot collaboration benchmark built on [MuJoCo](https://git
 ## RoCoBench-Text
 This text-based dataset is designed to evaluated an LLM's agent representation and task reasoning ability. The dataset is based on the above RoCoBench tasks, but requires no robotic environment interaction. The questions are more open-ended and go beyond simply finding the next best action plan.
 
+## Behavior Tree Execution
+
+This workspace now includes an experimental Behavior Tree-backed execution path
+for RoCo's LLM plans. The integration keeps the existing motion planner as the
+leaf skill while moving the runner, parser, and feedback interface onto a
+`BehaviorTreePlan`.
+
+See [../docs/behavior-tree-integration.md](../docs/behavior-tree-integration.md)
+for:
+
+- the current architecture
+- what has been validated so far
+- the TODO list for the next round of work
+
 ## Acknowledgement
 The Franak Panda, UR5E arm, and Robotiq gripper models are from the open-source [MuJoCo Menagerie](https://github.com/deepmind/mujoco_menagerie) project. Some of the object assets are borrowed from [Robosuite](https://robosuite.ai/) and [object sim](https://github.com/vikashplus/object_sim) repo. The suction gripper mesh is built on top of the gripper assets from the [Ravens](https://github.com/google-research/ravens/tree/master) benchmark. Special thanks to [Huy Ha](https://cs.columbia.edu/~huy) for helping with various aspects in the motion planning and simulation code. 

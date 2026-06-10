@@ -1,30 +1,37 @@
 import numpy as np
-from typing import Callable, List, Optional, Tuple, Union, Dict, Set
+from typing import Callable, List, Optional, Tuple, Union, Dict, Set, Any
 from dm_control.utils.inverse_kinematics import qpos_from_site_pose
 from pydantic import dataclasses, validator
 import matplotlib.pyplot as plt
 
+from rocobench.behavior_tree import (
+    BehaviorContext,
+    BehaviorStatus,
+    BehaviorTreePlan,
+    MotionPrimitive,
+)
 from rocobench.envs import SimAction, EnvState, SimRobot
 from rocobench.envs.env_utils import Pose
 from rocobench.rrt_multi_arm import MultiArmRRT
-from rocobench.subtask_plan import LLMPathPlan
 
 
-class PlannedPathPolicy:
+class MotionPrimitivePolicy:
     """
-    Takes in a series of LLM-proposed plans, i.e. a path of desired ee poses for each robot and where should it grasp/resealse objects
+    Takes in a motion primitive, i.e. a path of desired ee poses for each robot
+    and where it should grasp or release objects.
     Use these plans to compute the desired joint position waypoints via IK
     Use MultiArmRRT to plan and interpolate between the waypoints
     By default, each RRT planning step only cares about going from start to end without arms colliding,
     so the intermediate GPT-proposed waypoints may get skipped in the final motion plan.
     The plan for each robot may end with a target object to grasp.
-    Note the assumption: each LLMPathPlan can grasp at most one object per robot, so a pick-and-place motion would need two LLMPathPlan's to complete. 
+    Note the assumption: each motion primitive can grasp at most one object per
+    robot, so a pick-and-place motion is decomposed into multiple primitives.
     """
     def __init__(
         self,
         physics,
         robots: Dict[str, SimRobot],
-        path_plan: LLMPathPlan,  
+        path_plan: MotionPrimitive,
         control_freq: int = 20,
         close_loop: bool = False,
         use_weld: bool = True,
@@ -95,7 +102,7 @@ class PlannedPathPolicy:
     def parse_llm_plan_to_qpos(
         self, 
         physics, 
-        path_plan: LLMPathPlan, 
+        path_plan: MotionPrimitive,
         verbose: bool = False,
         update: bool = False,
     ) -> Tuple[np.ndarray]:
@@ -133,7 +140,7 @@ class PlannedPathPolicy:
             self.joints_qpos_waypoints = joints_qpos_waypoints
         return full_qpos_target, waypoints_full_qpos, joint_qpos_target, joints_qpos_waypoints
 
-    def parse_llm_plan_for_grasp(self, physics, path_plan: LLMPathPlan) -> Dict[str, Tuple[str, str, int]]:
+    def parse_llm_plan_for_grasp(self, physics, path_plan: MotionPrimitive) -> Dict[str, Tuple[str, str, int]]:
         """ parses each object to grasp/release """
         tograsp = dict()
         for robot_name, obj in path_plan.tograsp.items():
@@ -458,4 +465,126 @@ class PlannedPathPolicy:
         action = self.action_buffer[self.action_idx]
         self.action_idx += 1
         return action 
+
+
+class BehaviorTreePolicy:
+    """Tick a behavior tree online while reusing motion planning as the leaf skill."""
+
+    def __init__(
+        self,
+        physics,
+        robots: Dict[str, SimRobot],
+        behavior_tree: BehaviorTreePlan,
+        control_freq: int = 20,
+        close_loop: bool = False,
+        use_weld: bool = True,
+        skip_direct_path: bool = False,
+        skip_smooth_path: bool = False,
+        graspable_object_names: Optional[Union[Dict[str, str], List[str]]] = None,
+        check_relative_pose: bool = False,
+        allowed_collision_pairs: Optional[List[Tuple[int, int]]] = None,
+        plan_splitted: bool = False,
+        timeout: int = 200,
+        feedback_manager: Optional[Any] = None,
+    ):
+        self.physics = physics
+        self.robots = robots
+        self.behavior_tree = behavior_tree
+        self.control_freq = control_freq
+        self.close_loop = close_loop
+        self.use_weld = use_weld
+        self.skip_direct_path = skip_direct_path
+        self.skip_smooth_path = skip_smooth_path
+        self.graspable_object_names = graspable_object_names
+        self.check_relative_pose = check_relative_pose
+        self.allowed_collision_pairs = allowed_collision_pairs
+        self.plan_splitted = plan_splitted
+        self.timeout = timeout
+        self.feedback_manager = feedback_manager
+        self.tree_status = BehaviorStatus.IDLE
+        self.last_reason = ""
+        self.action_buffer: List[SimAction] = []
+        self.context = BehaviorContext(
+            blackboard=dict(
+                env=None,
+                executor_factory=self._make_leaf_executor,
+                primitive_validator=self._validate_primitive,
+                active_executor=None,
+                active_executor_key=None,
+                planned_leaf_actions=[],
+                planned_leaf_rrt=[],
+                last_failure="",
+            )
+        )
+
+    @property
+    def rrt_plan_results(self):
+        return self.context.blackboard.get("planned_leaf_rrt", [])
+
+    @property
+    def plan_exhausted(self) -> bool:
+        return self.tree_status == BehaviorStatus.SUCCESS
+
+    @property
+    def num_actions(self) -> int:
+        return len(self.action_buffer)
+
+    def _make_leaf_executor(self, primitive: MotionPrimitive) -> MotionPrimitivePolicy:
+        return MotionPrimitivePolicy(
+            physics=self.physics,
+            robots=self.robots,
+            path_plan=primitive,
+            control_freq=self.control_freq,
+            close_loop=self.close_loop,
+            use_weld=self.use_weld,
+            skip_direct_path=self.skip_direct_path,
+            skip_smooth_path=self.skip_smooth_path,
+            graspable_object_names=self.graspable_object_names,
+            check_relative_pose=self.check_relative_pose,
+            allowed_collision_pairs=self.allowed_collision_pairs,
+            plan_splitted=self.plan_splitted,
+            timeout=self.timeout,
+        )
+
+    def _validate_primitive(self, primitive: MotionPrimitive) -> Tuple[bool, str]:
+        if self.feedback_manager is None:
+            return True, ""
+        ready_to_execute, feedback = self.feedback_manager.give_feedback(primitive)
+        if ready_to_execute:
+            return True, ""
+        return False, feedback
+
+    def _tick_tree(self, env) -> Tuple[bool, str]:
+        self.context.blackboard["env"] = env
+        self.tree_status = self.behavior_tree.root.tick(self.context)
+        if self.tree_status == BehaviorStatus.FAILURE:
+            self.last_reason = self.context.blackboard.get(
+                "last_failure", "Behavior tree execution failed."
+            )
+            return False, self.last_reason
+        return True, ""
+
+    def plan(self, env) -> Tuple[bool, str]:
+        plan_success, reason = self._tick_tree(env)
+        if not plan_success:
+            return False, reason
+        if self.tree_status == BehaviorStatus.SUCCESS:
+            return True, "Behavior tree contained no executable actions."
+        return True, ""
+
+    def act(self, obs: EnvState, physics, env) -> Optional[SimAction]:
+        plan_success, reason = self._tick_tree(env)
+        if not plan_success:
+            raise RuntimeError(reason)
+        if self.tree_status == BehaviorStatus.SUCCESS:
+            return None
+
+        active_executor = self.context.blackboard.get("active_executor")
+        assert active_executor is not None, "Behavior tree did not activate a leaf executor."
+        action = active_executor.act(obs, physics)
+        self.action_buffer.append(action)
+        return action
+
+
+PlannedPathPolicy = MotionPrimitivePolicy
  

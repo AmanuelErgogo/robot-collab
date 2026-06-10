@@ -2,12 +2,13 @@ import os
 import json
 import pickle 
 import numpy as np
+import time
 from rocobench.envs import MujocoSimEnv, EnvState
-import openai
 from datetime import datetime
 from .feedback import FeedbackManager
 from .parser import LLMResponseParser
 from typing import List, Tuple, Dict, Union, Optional, Any
+from llm_api import create_llm_client
 
 PATH_PLAN_INSTRUCTION="""
 [How to plan PATH]
@@ -24,10 +25,6 @@ Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
 """
-OPENAI_KEY = str(json.load(open("openai_key.json")))
-openai.api_key = OPENAI_KEY
-
-
 def get_chat_prompt(env: MujocoSimEnv):
     robot_names = env.get_sim_robots().keys()
     talk_order_str = ",".join([f"[{name}]" for name in robot_names])
@@ -66,6 +63,7 @@ class SingleThreadPrompter:
         temperature: float = 0,
         max_tokens: int = 1000, 
         llm_source: str = "gpt-4",
+        api_key_path: Optional[str] = None,
     ):
         self.env = env 
         self.robot_agent_names = env.get_sim_robots().keys()
@@ -80,6 +78,8 @@ class SingleThreadPrompter:
         self.temperature = temperature
         self.llm_source = llm_source
         self.max_tokens = max_tokens
+        self.llm_client = create_llm_client(llm_source, api_key_path=api_key_path)
+        self.provider_spec = self.llm_client.provider_spec
 
         self.round_history = [] # [obs_t, action_t] but only if action_t got executed
         self.failed_plans = [] # could inherit from previous round if the final plan failed to execute in env.
@@ -154,6 +154,7 @@ class SingleThreadPrompter:
         plan_feedbacks = []
         response_history = []
         obs_desp = self.env.describe_obs(obs)
+        bt_plan = None
         for i in range(self.num_replans): 
             system_prompt = self.compose_system_prompt(obs_desp, plan_feedbacks)
             response, usage = self.query_once(
@@ -182,7 +183,7 @@ class SingleThreadPrompter:
             
             curr_feedback = "None"
             # try parsing 
-            parse_succ, parsed_str, llm_plans = self.parser.parse(obs, response) 
+            parse_succ, parsed_str, bt_plan = self.parser.parse(obs, response) 
             if not parse_succ: 
                 execute_str = 'EXECUTE' + response.split('EXECUTE')[-1]
                 curr_feedback = f"""
@@ -194,12 +195,9 @@ Re-format to strictly follow [Action Output Instruction]!
                 ready_to_execute = False  
             # give env. feedback 
             else:
-                ready_to_execute = True
-                for j, llm_plan in enumerate(llm_plans): 
-                    ready_to_execute, env_feedback = self.feedback_manager.give_feedback(llm_plan)        
-                    if not ready_to_execute:
-                        curr_feedback = env_feedback
-                        break
+                ready_to_execute, env_feedback = self.feedback_manager.give_tree_feedback(bt_plan)
+                if not ready_to_execute:
+                    curr_feedback = env_feedback
             
             plan_feedbacks.append(curr_feedback)
             tosave = [
@@ -209,7 +207,7 @@ Re-format to strictly follow [Action Output Instruction]!
                 },
                 {
                     "sender": "Action",
-                    "message": (response if not parse_succ else llm_plans[0].get_action_desp()),
+                    "message": (response if not parse_succ else bt_plan.get_action_desp()),
                 },
             ]
             timestamp = datetime.now().strftime("%m%d-%H%M")
@@ -220,12 +218,13 @@ Re-format to strictly follow [Action Output Instruction]!
                 plan_str = parsed_str
                 break  
         self.response_history = response_history
-        return ready_to_execute, llm_plans, plan_feedbacks, response_history
+        return ready_to_execute, bt_plan, plan_feedbacks, response_history
 
 
     def query_once(self, system_prompt, user_prompt=""):
         response = None
-        usage = None   
+        usage = None
+        last_error = None
         # print('======= system prompt ======= \n ', system_prompt)
         if self.debug_mode: # query human user input
             response = "EXECUTE\n"
@@ -237,23 +236,36 @@ Re-format to strictly follow [Action Output Instruction]!
         for n in range(self.max_api_queries):
             print('querying {}th time'.format(n))
             try:
-                response = openai.ChatCompletion.create(
-                    model=self.llm_source,
-                    messages=[
-                        # {"role": "user", "content": user_prompt},
-                        {"role": "system", "content": system_prompt},                                    
-                    ],
-                    max_tokens=self.max_tokens,
-                    temperature=self.temperature, 
+                messages = [{"role": "system", "content": system_prompt}]
+                if len(user_prompt.strip()) > 0:
+                    messages.append({"role": "user", "content": user_prompt})
+                else:
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": "Respond to the instructions above and provide the requested plan.",
+                        }
                     )
-                usage = response['usage']
-                response = response['choices'][0]['message']["content"]
+                llm_response = self.llm_client.generate(
+                    messages=messages,
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                )
+                usage = llm_response.usage
+                response = llm_response.text
                 print('======= response ======= \n ', response)
                 print('======= usage ======= \n ', usage)
                 break
-            except:
-                print("API error, try again")
+            except Exception as exc:
+                last_error = exc
+                print(f"API error, try again: {exc}")
+                if n < self.max_api_queries - 1:
+                    time.sleep(min(2 ** n, 4))
             continue
+        if response is None:
+            raise RuntimeError(
+                f"LLM query failed after {self.max_api_queries} attempts for model {self.llm_source}: {last_error}"
+            )
         return response, usage
 
     

@@ -1,6 +1,6 @@
 import re
 import numpy as np
-from rocobench.subtask_plan import LLMPathPlan
+from rocobench.behavior_tree import BehaviorTreePlan, MotionPrimitive
 from typing import List, Tuple, Dict, Union, Optional, Any
 from collections import defaultdict
 from rocobench.envs import MujocoSimEnv
@@ -29,7 +29,7 @@ class FeedbackManager:
         self.step_std_threshold = step_std_threshold
         self.max_failed_waypoints = max_failed_waypoints
     
-    def get_full_path(self, llm_plan: LLMPathPlan) -> Dict[str, Pose]:
+    def get_full_path(self, llm_plan: MotionPrimitive) -> Dict[str, Pose]:
         full_path = dict()
         obs = self.env.get_obs()  
         for robot_name, agent_name in self.robot_name_map.items():
@@ -42,7 +42,7 @@ class FeedbackManager:
                 full_path[agent_name] = [start_pose, target_pose]
         return full_path        
 
-    def task_feedback(self, llm_plan: LLMPathPlan) -> str: 
+    def task_feedback(self, llm_plan: MotionPrimitive) -> str: 
         task_feedback = self.env.get_task_feedback(
             llm_plan, 
             llm_plan.ee_target_poses
@@ -68,7 +68,7 @@ class FeedbackManager:
     
     def collision_feedback(
         self, 
-        llm_plan: LLMPathPlan, 
+        llm_plan: MotionPrimitive,
         ik_result: Dict[str, np.ndarray]
     ) -> str:
         assert all([result is not None for result in ik_result.values()]), "Collision feedback should be called after ik feedback"
@@ -104,7 +104,7 @@ class FeedbackManager:
                 )
         return feedback
 
-    def path_feedback(self, llm_plan: LLMPathPlan) -> str:
+    def path_feedback(self, llm_plan: MotionPrimitive) -> str:
         """ check if the waypoint steps are evenly spaced """
         feedback = ""
         if self.llm_output_mode == "action_and_path":
@@ -160,7 +160,7 @@ class FeedbackManager:
             feedback = ""
         return all_passed, feedback
  
-    def give_feedback(self, llm_plan: LLMPathPlan) -> Tuple[bool, str]:
+    def give_feedback(self, llm_plan: MotionPrimitive) -> Tuple[bool, str]:
         """
         Given a parsed LLM plan, run task validations and provide feedback if needed
         """
@@ -199,5 +199,10 @@ class FeedbackManager:
             feedback += f"Task Constraints:\n faild, {task_feedback}\n"
         # breakpoint()
         return plan_passed, feedback
-        
 
+    def give_tree_feedback(self, bt_plan: BehaviorTreePlan) -> Tuple[bool, str]:
+        for idx, primitive in enumerate(bt_plan.iter_motion_primitives()):
+            ready, feedback = self.give_feedback(primitive)
+            if not ready:
+                return False, f"[BT Stage {idx}] {feedback}"
+        return True, "None"

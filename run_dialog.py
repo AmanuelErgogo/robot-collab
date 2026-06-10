@@ -13,7 +13,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 from rocobench.envs import SortOneBlockTask, CabinetTask, MoveRopeTask, SweepTask, MakeSandwichTask, PackGroceryTask, MujocoSimEnv, SimRobot, visualize_voxel_scene
-from rocobench import PlannedPathPolicy, LLMPathPlan, MultiArmRRT
+from rocobench import BehaviorTreePlan, BehaviorTreePolicy, MotionPrimitive, MultiArmRRT
 from prompting import LLMResponseParser, FeedbackManager, DialogPrompter, SingleThreadPrompter, save_episode_html
 
 # print out logging.info
@@ -56,7 +56,8 @@ class LLMRunner:
         use_history: bool = False,
         use_feedback: bool = False,
         temperature: float = 0.0,
-        llm_source: str = "gpt4",
+        llm_source: str = "gpt-4",
+        api_key_path: Optional[str] = None,
         ):
         self.env = env
         self.env.reset()
@@ -131,6 +132,7 @@ class LLMRunner:
                 comm_mode=llm_comm_mode,
                 temperature=self.temperature,
                 llm_source=llm_source,
+                api_key_path=api_key_path,
             )
 
         else:
@@ -148,10 +150,11 @@ class LLMRunner:
                 num_replans=self.llm_num_replans,
                 temperature=self.temperature,
                 llm_source=llm_source,
+                api_key_path=api_key_path,
             )
 
 
-    def display_plan(self, plan: LLMPathPlan, save_name = "vis_plan", save_dir = None):
+    def display_plan(self, plan: MotionPrimitive, save_name = "vis_plan", save_dir = None):
         """ Display the plan in the open3d viewer """ 
         env = deepcopy(self.env)
         env.physics.data.qpos[:] = self.env.physics.data.qpos[:].copy()
@@ -167,6 +170,18 @@ class LLMRunner:
             save_img=(save_dir is not None),
             img_path=save_path
             )
+
+    def coerce_behavior_tree_plan(self, maybe_plan) -> Optional[BehaviorTreePlan]:
+        if maybe_plan is None:
+            return None
+        if isinstance(maybe_plan, BehaviorTreePlan):
+            maybe_plan.reset()
+            return maybe_plan
+        if isinstance(maybe_plan, MotionPrimitive):
+            return BehaviorTreePlan.from_primitives([maybe_plan])
+        if isinstance(maybe_plan, list) and len(maybe_plan) > 0:
+            return BehaviorTreePlan.from_primitives(maybe_plan)
+        return None
         
 
     def one_run(self, run_id: int = 0, start_step: int = 0, skip_reset = False, prev_llm_plans = [], prev_response = None, prev_actions = None):
@@ -183,6 +198,7 @@ class LLMRunner:
         done = False
         reward = 0
         obs = env.get_obs()
+        has_prev_plan = self.coerce_behavior_tree_plan(prev_llm_plans) is not None
         for step in range(start_step, start_step + self.max_runner_steps):
 
             step_dir = os.path.join(save_dir, f"step_{step}")
@@ -196,92 +212,90 @@ class LLMRunner:
                 pickle.dump(sim_data, f)
 
 
-            if step == start_step and len(prev_llm_plans) > 0:
+            if step == start_step and has_prev_plan:
                 ready_to_execute = 1
-                current_llm_plan = prev_llm_plans
+                current_bt_plan = self.coerce_behavior_tree_plan(prev_llm_plans)
                 response = ""
                 prompt_breakdown = dict()
 
             elif step == start_step and prev_actions is not None:
                 ready_to_execute = 1
-                current_llm_plan = prev_llm_plans
+                current_bt_plan = self.coerce_behavior_tree_plan(prev_llm_plans)
                 response = ""
                 prompt_breakdown = dict()
 
             else:
-                ready_to_execute, current_llm_plan, response, prompt_breakdown = self.prompter.prompt_one_round(
+                ready_to_execute, current_bt_plan, response, prompt_breakdown = self.prompter.prompt_one_round(
                     obs,
                     save_path=prompt_path,
                     # prev_response=(prev_response['response'] if step == start_step and prev_response is not None else None)
                     )
-                if not ready_to_execute or current_llm_plan is None:
+                if not ready_to_execute or current_bt_plan is None:
                     print(f"Run {run_id}: Step {step} failed to get a plan from LLM. Move on to next step.")
                     continue
 
+            logging.info(f"Step: {step} LLM plan parsed, begin RRT planning ")
+            if current_bt_plan is not None:
                 if not self.skip_display:
-                    for i, plan in enumerate(current_llm_plan):
+                    for i, plan in enumerate(current_bt_plan.iter_motion_primitives()):
                         self.display_plan(plan, save_name=f"vis_llm_plan_{i}", save_dir=step_dir)
 
-
-                for i, plan in enumerate(current_llm_plan):
+                with open(os.path.join(step_dir, "bt_plan.pkl"), "wb") as f:
+                    pickle.dump(current_bt_plan, f)
+                for i, plan in enumerate(current_bt_plan.iter_motion_primitives()):
                     save_fname = os.path.join(step_dir, f"llm_plan_{i}.pkl")
                     with open(save_fname, "wb") as f:
                         pickle.dump(plan, f)
 
-
-            logging.info(f"Step: {step} LLM plan parsed, begin RRT planning ")
             # try execute this plan, if one of the plan failed, rewind the env to before the first plan was executed!
             rewind_env = False
+            policy = BehaviorTreePolicy(
+                physics=env.physics,
+                robots=self.robots,
+                behavior_tree=current_bt_plan,
+                graspable_object_names=self.env.get_graspable_objects(),
+                allowed_collision_pairs=self.env.get_allowed_collision_pairs(),
+                plan_splitted=self.split_parsed_plans,
+                feedback_manager=self.feedback_manager,
+                **self.policy_kwargs,
+            )
 
-            for i, plan in enumerate(current_llm_plan):
-                print('tograsp:', plan.tograsp, 'inhand:', plan.inhand, plan.action_strs)
-                policy = PlannedPathPolicy(
-                    physics=env.physics,
-                    robots=self.robots,
-                    path_plan=plan,
-                    graspable_object_names=self.env.get_graspable_objects(),
-                    allowed_collision_pairs=self.env.get_allowed_collision_pairs(),
-                    plan_splitted=self.split_parsed_plans,
-                    **self.policy_kwargs,
-                )
-
-                num_sim_steps = 0
-                if prev_actions is not None:
-                    for sim_action in prev_actions:
-                        # env.physics.model.eq_active[52:] = 0
-                        # env.physics.forward() # DEBUG
-                        obs, reward, done, info = env.step(sim_action, verbose=False)
-                        num_sim_steps += 1
-                else:
-                    # breakpoint()
-                    plan_success, reason = policy.plan(env)
-                    logging.info(f"Stesp: {step} Plan success: {plan_success}, reason: {reason}")
-                    if plan_success:
-                        logging.info(f"Execute the plan for {len(policy.action_buffer)} steps")
-
-                        plan_fname = os.path.join(step_dir, f"rrt_plan_{i}.pkl")
-                        plans = policy.rrt_plan_results
-                        with open(plan_fname, "wb") as f:
-                            pickle.dump(plans, f)
-
-                        actions_fname = f"{step_dir}/actions_{i}.pkl"
-                        with open(actions_fname, "wb") as f:
-                            pickle.dump(policy.action_buffer, f)
-
+            num_sim_steps = 0
+            if prev_actions is not None:
+                for sim_action in prev_actions:
+                    obs, reward, done, info = env.step(sim_action, verbose=False)
+                    num_sim_steps += 1
+            else:
+                plan_success, reason = policy.plan(env)
+                logging.info(f"Step: {step} BT init success: {plan_success}, reason: {reason}")
+                if plan_success:
+                    try:
                         while not policy.plan_exhausted:
-                            sim_action = policy.act(obs, env.physics)
+                            sim_action = policy.act(obs, env.physics, env)
+                            if sim_action is None:
+                                break
                             obs, reward, done, info = env.step(sim_action, verbose=False)
                             num_sim_steps += 1
-
-                if num_sim_steps > 0:
-                    vid_name = f"{step_dir}/execute.mp4"
-                    env.export_render_to_video(vid_name, out_type=self.video_format,  fps=50)
-                    print(f'Plans all executed! Video sample saved to {vid_name}')
-
+                    except RuntimeError as exc:
+                        logging.info(f"Step: {step} BT execution failed: {exc}")
+                        rewind_env = True
                 else:
-                    print(f"Plan {i} failed to execute.")
                     rewind_env = True
-                    break
+
+            if not rewind_env:
+                with open(os.path.join(step_dir, "rrt_plan.pkl"), "wb") as f:
+                    pickle.dump(policy.rrt_plan_results, f)
+                with open(os.path.join(step_dir, "actions.pkl"), "wb") as f:
+                    pickle.dump(policy.action_buffer, f)
+
+            if num_sim_steps > 0 and not rewind_env:
+                vid_name = f"{step_dir}/execute.mp4"
+                env.export_render_to_video(vid_name, out_type=self.video_format,  fps=50)
+                print(f'Plans all executed! Video sample saved to {vid_name}')
+
+            else:
+                print(f"Behavior tree plan failed to execute.")
+                rewind_env = True
 
             if rewind_env:
                 print("Rewinding the environment to before the first plan was executed.")
@@ -297,7 +311,7 @@ class LLMRunner:
             self.prompter.post_execute_update(
                 obs_desp="", # TODO
                 execute_success=(not rewind_env),
-                parsed_plan=current_llm_plan[0].get_action_desp()
+                parsed_plan=current_bt_plan.get_action_desp()
             )
 
             if done:
@@ -344,11 +358,15 @@ class LLMRunner:
             print(f"==== Loading back Run {args.load_run_id} ====")
             next_step = int(latest_step.split("/")[-1].split("_")[-1])
             prev_llm_plans = []
-            prev_plans = natsorted(
-                    glob(os.path.join(latest_step, "llm_plan_*pkl"))
-                    )
-            if len(prev_plans) > 0:
-                prev_llm_plans = [pickle.load(open(fname, "rb")) for fname in prev_plans]
+            bt_plan_fname = os.path.join(latest_step, "bt_plan.pkl")
+            if os.path.exists(bt_plan_fname):
+                prev_llm_plans = pickle.load(open(bt_plan_fname, "rb"))
+            else:
+                prev_plans = natsorted(
+                        glob(os.path.join(latest_step, "llm_plan_*pkl"))
+                        )
+                if len(prev_plans) > 0:
+                    prev_llm_plans = [pickle.load(open(fname, "rb")) for fname in prev_plans]
 
             prev_response = None
             prev_responses = natsorted(
@@ -459,6 +477,7 @@ def main(args):
         use_feedback=(not args.no_feedback),
         temperature=args.temperature,
         llm_source=args.llm_source,
+        api_key_path=args.api_key_path,
     )
     runner.run(args)
 
@@ -488,6 +507,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_history", "-nh", action="store_true")
     parser.add_argument("--no_feedback", "-nf", action="store_true")
     parser.add_argument("--llm_source", "-llm", type=str, default="gpt-4")
+    parser.add_argument("--api_key_path", "-k", type=str, default=None)
     logging.basicConfig(level=logging.INFO)
 
     args = parser.parse_args()

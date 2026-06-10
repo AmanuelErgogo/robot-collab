@@ -1,6 +1,6 @@
 import re
 import numpy as np
-from rocobench.subtask_plan import LLMPathPlan
+from rocobench.behavior_tree import BehaviorTreePlan, MotionPrimitive
 from typing import List, Tuple, Dict, Union, Optional, Any
 from rocobench.envs import MujocoSimEnv, EnvState, RobotState
 from scipy.spatial.transform import Rotation, Slerp
@@ -31,7 +31,7 @@ class LLMResponseParser:
         self.use_preplace = use_preplace # if True, separate pre-place and place actions
         self.split_parsed_plans = split_parsed_plans 
 
-    def parse(self, obs: EnvState, response: str) -> Tuple[bool, str, List[LLMPathPlan]]: 
+    def parse(self, obs: EnvState, response: str) -> Tuple[bool, str, Optional[BehaviorTreePlan]]: 
         parsed = ''  
         for keyword in self.response_keywords:
             if keyword not in response: 
@@ -105,7 +105,7 @@ class LLMResponseParser:
             waypoint_lens = [len(waypoints) for waypoints in kwargs['ee_waypoints'].values()]
             if not all([waypoint_lens[0] == _len for _len in waypoint_lens]):
                 return False, 'Planned PATH must have exact same number of steps for all agents', []
-            path_plans.append(LLMPathPlan(**kwargs))
+            path_plans.append(MotionPrimitive(**kwargs))
         
 
         # if self.split_parsed_plans:
@@ -133,7 +133,7 @@ class LLMResponseParser:
         #     print(f"Split {len(path_plans)} plans into a total of {len(splitted_plans)} sub-plans")
         #     path_plans = splitted_plans
 
-        return True, parsed, path_plans
+        return True, parsed, BehaviorTreePlan.from_primitives(path_plans)
     
     def parse_single_line(
         self,

@@ -1,21 +1,17 @@
 import os 
 import json
 import pickle 
-import openai
 import numpy as np
+import time
 from datetime import datetime
 from os.path import join
 from typing import List, Tuple, Dict, Union, Optional, Any
 
-from rocobench.subtask_plan import LLMPathPlan
 from rocobench.rrt_multi_arm import MultiArmRRT
 from rocobench.envs import MujocoSimEnv, EnvState 
 from .feedback import FeedbackManager
 from .parser import LLMResponseParser
-
-assert os.path.exists("openai_key.json"), "Please put your OpenAI API key in a string in robot-collab/openai_key.json"
-OPENAI_KEY = str(json.load(open("openai_key.json")))
-openai.api_key = OPENAI_KEY
+from llm_api import create_llm_client
 
 PATH_PLAN_INSTRUCTION="""
 [Path Plan Instruction]
@@ -51,7 +47,8 @@ class DialogPrompter:
         use_history: bool = True,  
         use_feedback: bool = True,
         temperature: float = 0,
-        llm_source: str = "gpt-4"
+        llm_source: str = "gpt-4",
+        api_key_path: Optional[str] = None,
     ):
         self.max_tokens = max_tokens
         self.debug_mode = debug_mode
@@ -70,7 +67,8 @@ class DialogPrompter:
         self.max_calls_per_round = max_calls_per_round 
         self.temperature = temperature
         self.llm_source = llm_source
-        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
+        self.llm_client = create_llm_client(llm_source, api_key_path=api_key_path)
+        self.provider_spec = self.llm_client.provider_spec
 
     def compose_system_prompt(
         self, 
@@ -116,6 +114,7 @@ class DialogPrompter:
     def prompt_one_round(self, obs: EnvState, save_path: str = ""): 
         plan_feedbacks = []
         chat_history = [] 
+        bt_plan = None
         for i in range(self.num_replans):
             final_agent, final_response, agent_responses = self.prompt_one_dialog_round(
                 obs,
@@ -125,7 +124,7 @@ class DialogPrompter:
                 save_path=save_path,
             )
             chat_history += agent_responses
-            parse_succ, parsed_str, llm_plans = self.parser.parse(obs, final_response) 
+            parse_succ, parsed_str, bt_plan = self.parser.parse(obs, final_response) 
 
             curr_feedback = "None"
             if not parse_succ:  
@@ -135,12 +134,9 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
                 ready_to_execute = False  
             
             else:
-                ready_to_execute = True
-                for j, llm_plan in enumerate(llm_plans): 
-                    ready_to_execute, env_feedback = self.feedback_manager.give_feedback(llm_plan)        
-                    if not ready_to_execute:
-                        curr_feedback = env_feedback
-                        break
+                ready_to_execute, env_feedback = self.feedback_manager.give_tree_feedback(bt_plan)
+                if not ready_to_execute:
+                    curr_feedback = env_feedback
             plan_feedbacks.append(curr_feedback)
             tosave = [
                 {
@@ -149,7 +145,7 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
                 },
                 {
                     "sender": "Action",
-                    "message": (final_response if not parse_succ else llm_plans[0].get_action_desp()),
+                    "message": (final_response if not parse_succ else bt_plan.get_action_desp()),
                 },
             ]
             timestamp = datetime.now().strftime("%m%d-%H%M")
@@ -161,7 +157,7 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
             else:
                 print(curr_feedback)
         self.latest_chat_history = chat_history
-        return ready_to_execute, llm_plans, plan_feedbacks, chat_history
+        return ready_to_execute, bt_plan, plan_feedbacks, chat_history
    
     def prompt_one_dialog_round(
         self, 
@@ -249,7 +245,8 @@ Your response is:
 
     def query_once(self, system_prompt, user_prompt, max_query):
         response = None
-        usage = None   
+        usage = None
+        last_error = None
         # print('======= system prompt ======= \n ', system_prompt)
         # print('======= user prompt ======= \n ', user_prompt)
 
@@ -263,24 +260,29 @@ Your response is:
         for n in range(max_query):
             print('querying {}th time'.format(n))
             try:
-                response = openai.ChatCompletion.create(
-                    model=self.llm_source, 
-                    messages=[
-                        # {"role": "user", "content": ""},
-                        {"role": "system", "content": system_prompt+user_prompt},                                    
-                    ],
+                messages = [{"role": "system", "content": system_prompt}]
+                if len(user_prompt.strip()) > 0:
+                    messages.append({"role": "user", "content": user_prompt})
+                llm_response = self.llm_client.generate(
+                    messages=messages,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
-                    )
-                usage = response['usage']
-                response = response['choices'][0]['message']["content"]
+                )
+                usage = llm_response.usage
+                response = llm_response.text
                 print('======= response ======= \n ', response)
                 print('======= usage ======= \n ', usage)
                 break
-            except:
-                print("API error, try again")
+            except Exception as exc:
+                last_error = exc
+                print(f"API error, try again: {exc}")
+                if n < max_query - 1:
+                    time.sleep(min(2 ** n, 4))
             continue
-        # breakpoint()
+        if response is None:
+            raise RuntimeError(
+                f"LLM query failed after {max_query} attempts for model {self.llm_source}: {last_error}"
+            )
         return response, usage
     
     def post_execute_update(self, obs_desp: str, execute_success: bool, parsed_plan: str):
