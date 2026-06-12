@@ -13,9 +13,18 @@ from rocobench.envs import MujocoSimEnv, EnvState
 from .feedback import FeedbackManager
 from .parser import LLMResponseParser
 
-assert os.path.exists("openai_key.json"), "Please put your OpenAI API key in a string in robot-collab/openai_key.json"
-OPENAI_KEY = str(json.load(open("openai_key.json")))
-openai.api_key = OPENAI_KEY
+_OPENAI_CONFIGURED = False
+
+
+def _ensure_openai_configured():
+    global _OPENAI_CONFIGURED
+    if _OPENAI_CONFIGURED:
+        return
+    if not os.path.exists("openai_key.json"):
+        raise FileNotFoundError("Please put your OpenAI API key in robot-collab/openai_key.json")
+    with open("openai_key.json", "r") as f:
+        openai.api_key = str(json.load(f))
+    _OPENAI_CONFIGURED = True
 
 PATH_PLAN_INSTRUCTION="""
 [Path Plan Instruction]
@@ -51,7 +60,8 @@ class DialogPrompter:
         use_history: bool = True,  
         use_feedback: bool = True,
         temperature: float = 0,
-        llm_source: str = "gpt-4"
+        llm_source: str = "gpt-4",
+        prompt_provider: Optional[Any] = None,
     ):
         self.max_tokens = max_tokens
         self.debug_mode = debug_mode
@@ -70,6 +80,7 @@ class DialogPrompter:
         self.max_calls_per_round = max_calls_per_round 
         self.temperature = temperature
         self.llm_source = llm_source
+        self.prompt_provider = prompt_provider
         assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
 
     def compose_system_prompt(
@@ -80,10 +91,14 @@ class DialogPrompter:
         current_chat: List = [],  # chat from current round, this comes AFTER env feedback 
         feedback_history: List = []
     ) -> str:
-        action_desp = self.env.get_action_prompt()
-        if self.use_waypoints:
-            action_desp += PATH_PLAN_INSTRUCTION
-        agent_prompt = self.env.get_agent_prompt(obs, agent_name)
+        if self.prompt_provider is None:
+            action_desp = self.env.get_action_prompt()
+            if self.use_waypoints:
+                action_desp += PATH_PLAN_INSTRUCTION
+            agent_prompt = self.env.get_agent_prompt(obs, agent_name)
+        else:
+            action_desp = self.prompt_provider.get_action_prompt(obs, agent_name)
+            agent_prompt = self.prompt_provider.get_agent_prompt(obs, agent_name)
         
         round_history = self.get_round_history() if self.use_history else ""
 
@@ -137,6 +152,8 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
             else:
                 ready_to_execute = True
                 for j, llm_plan in enumerate(llm_plans): 
+                    if hasattr(self.feedback_manager, "update_obs"):
+                        self.feedback_manager.update_obs(obs)
                     ready_to_execute, env_feedback = self.feedback_manager.give_feedback(llm_plan)        
                     if not ready_to_execute:
                         curr_feedback = env_feedback
@@ -263,6 +280,7 @@ Your response is:
         for n in range(max_query):
             print('querying {}th time'.format(n))
             try:
+                _ensure_openai_configured()
                 response = openai.ChatCompletion.create(
                     model=self.llm_source, 
                     messages=[
