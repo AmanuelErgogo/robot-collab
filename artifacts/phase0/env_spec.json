@@ -1,0 +1,207 @@
+{
+  "action": {
+    "dtype": "float32",
+    "field_names": [
+      "ur5e_0_shoulder_pan_joint",
+      "ur5e_0_shoulder_lift_joint",
+      "ur5e_0_elbow_joint",
+      "ur5e_0_wrist_1_joint",
+      "ur5e_0_wrist_2_joint",
+      "ur5e_0_wrist_3_joint",
+      "ur5e_0_base_joint",
+      "robotiq_fingers_actuator"
+    ],
+    "high": [
+      6.283100128173828,
+      6.283100128173828,
+      2.1414999961853027,
+      6.283100128173828,
+      6.283100128173828,
+      6.283100128173828,
+      1.2999999523162842,
+      255.0
+    ],
+    "low": [
+      -6.283100128173828,
+      -6.283100128173828,
+      -3.1414999961853027,
+      -6.283100128173828,
+      -6.283100128173828,
+      -6.283100128173828,
+      -1.5,
+      0.0
+    ],
+    "name": "action",
+    "shape": [
+      8
+    ]
+  },
+  "action_mode": "absolute_joint_position_plus_gripper",
+  "active_agent": "Alice",
+  "cameras": [
+    {
+      "channels": 3,
+      "dtype": "uint8",
+      "height": 256,
+      "name": "active_agent",
+      "width": 256
+    },
+    {
+      "channels": 3,
+      "dtype": "uint8",
+      "height": 256,
+      "name": "front",
+      "width": 256
+    }
+  ],
+  "effective_fps": 5.0,
+  "max_episode_steps": 300,
+  "metadata": {
+    "action_control_ranges": {
+      "high": [
+        6.283100128173828,
+        6.283100128173828,
+        2.1414999961853027,
+        6.283100128173828,
+        6.283100128173828,
+        6.283100128173828,
+        1.2999999523162842,
+        255.0
+      ],
+      "low": [
+        -6.283100128173828,
+        -6.283100128173828,
+        -3.1414999961853027,
+        -6.283100128173828,
+        -6.283100128173828,
+        -6.283100128173828,
+        -1.5,
+        0.0
+      ]
+    },
+    "action_field_names": [
+      "ur5e_0_shoulder_pan_joint",
+      "ur5e_0_shoulder_lift_joint",
+      "ur5e_0_elbow_joint",
+      "ur5e_0_wrist_1_joint",
+      "ur5e_0_wrist_2_joint",
+      "ur5e_0_wrist_3_joint",
+      "ur5e_0_base_joint",
+      "robotiq_fingers_actuator"
+    ],
+    "agent_to_robot": {
+      "Alice": "ur5e_robotiq",
+      "Bob": "panda"
+    },
+    "camera_aliases": {
+      "active_agent": "face_ur5e",
+      "front": "teaser"
+    },
+    "camera_names": [
+      "face_panda",
+      "face_ur5e",
+      "top_cam",
+      "right_cam",
+      "left_cam",
+      "teaser"
+    ],
+    "effective_env_step_duration": 0.2,
+    "gripper_ctrl_index": 7,
+    "gripper_name": "robotiq_fingers_actuator",
+    "joint_ctrl_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      0
+    ],
+    "joint_names": [
+      "ur5e_0_shoulder_pan_joint",
+      "ur5e_0_shoulder_lift_joint",
+      "ur5e_0_elbow_joint",
+      "ur5e_0_wrist_1_joint",
+      "ur5e_0_wrist_2_joint",
+      "ur5e_0_wrist_3_joint",
+      "ur5e_0_base_joint"
+    ],
+    "joint_qpos_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      0
+    ],
+    "joint_qvel_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      0
+    ],
+    "physics_timestep": 0.002,
+    "python_version": "3.8.20",
+    "randomization_enabled": true,
+    "render_freq": 20,
+    "reward_success_description": "PackGroceryTask returns reward=1 and done=True when every grocery item is in or aligned with the bin.",
+    "robot_model": "ur5e_robotiq",
+    "roco_git_commit": "9943870",
+    "sim_forward_steps": 100,
+    "sim_save_freq": 100,
+    "state_field_names": [
+      "qpos.ur5e_0_shoulder_pan_joint",
+      "qpos.ur5e_0_shoulder_lift_joint",
+      "qpos.ur5e_0_elbow_joint",
+      "qpos.ur5e_0_wrist_1_joint",
+      "qpos.ur5e_0_wrist_2_joint",
+      "qpos.ur5e_0_wrist_3_joint",
+      "qpos.ur5e_0_base_joint",
+      "qvel.ur5e_0_shoulder_pan_joint",
+      "qvel.ur5e_0_shoulder_lift_joint",
+      "qvel.ur5e_0_elbow_joint",
+      "qvel.ur5e_0_wrist_1_joint",
+      "qvel.ur5e_0_wrist_2_joint",
+      "qvel.ur5e_0_wrist_3_joint",
+      "qvel.ur5e_0_base_joint",
+      "ctrl.robotiq_fingers_actuator"
+    ]
+  },
+  "observation_state": {
+    "dtype": "float32",
+    "field_names": [
+      "qpos.ur5e_0_shoulder_pan_joint",
+      "qpos.ur5e_0_shoulder_lift_joint",
+      "qpos.ur5e_0_elbow_joint",
+      "qpos.ur5e_0_wrist_1_joint",
+      "qpos.ur5e_0_wrist_2_joint",
+      "qpos.ur5e_0_wrist_3_joint",
+      "qpos.ur5e_0_base_joint",
+      "qvel.ur5e_0_shoulder_pan_joint",
+      "qvel.ur5e_0_shoulder_lift_joint",
+      "qvel.ur5e_0_elbow_joint",
+      "qvel.ur5e_0_wrist_1_joint",
+      "qvel.ur5e_0_wrist_2_joint",
+      "qvel.ur5e_0_wrist_3_joint",
+      "qvel.ur5e_0_base_joint",
+      "ctrl.robotiq_fingers_actuator"
+    ],
+    "high": null,
+    "low": null,
+    "name": "agent_pos",
+    "shape": [
+      15
+    ]
+  },
+  "passive_agents": [
+    "Bob"
+  ],
+  "protocol_version": "0.1",
+  "success_semantics": "is_success is bool(done or reward > 0) using PackGroceryTask.get_reward_done.",
+  "task": "pack",
+  "task_description": "Pack grocery items into the grocery bin."
+}
