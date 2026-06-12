@@ -325,18 +325,46 @@ class PackGroceryTask(MujocoSimEnv):
         z += 0.05 # further avoid collision
         contacts = obs.objects[name].contacts 
         object_desp = f"{name}: ({x:.2f}, {y:.2f}, {z:.2f}), "
-        if 'bin_inside' in contacts:
-            dist_to_slot = [
-                (
-                    slot_name, np.linalg.norm(np.array([x,y]) - slot_xpos[:2])
-                ) for slot_name, slot_xpos in self.bin_slot_xposes.items()
-
-            ]
-            slot_name = min(dist_to_slot, key=lambda x: x[1])[0]
+        slot_name = self.get_packed_slot_for_object(obs, name)
+        if slot_name is not None:
             object_desp += f"inside slot {slot_name}"
         else:
             object_desp += f"on table"
         return object_desp
+
+    def get_packed_slot_for_object(self, obs, object_name) -> Optional[str]:
+        """Return the nearest bin slot for a packed object, or None."""
+        if object_name not in obs.objects:
+            return None
+        contacts = obs.objects[object_name].contacts
+        if 'bin_inside' not in contacts:
+            return None
+        x, y = obs.objects[object_name].xpos[:2]
+        dist_to_slot = [
+            (
+                slot_name, np.linalg.norm(np.array([x, y]) - slot_xpos[:2])
+            ) for slot_name, slot_xpos in self.bin_slot_xposes.items()
+        ]
+        return min(dist_to_slot, key=lambda item: item[1])[0]
+
+    def get_slot_occupancy(self, obs) -> Dict[str, Optional[str]]:
+        """Return a mapping from bin slot name to occupying grocery item."""
+        occupancy = {slot_name: None for slot_name in self.bin_slot_xposes.keys()}
+        for object_name in self.item_names:
+            slot_name = self.get_packed_slot_for_object(obs, object_name)
+            if slot_name is not None and occupancy.get(slot_name) is None:
+                occupancy[slot_name] = object_name
+        return occupancy
+
+    def get_agent_held_object(self, obs, agent_name) -> Optional[str]:
+        """Return the grocery item currently held by an agent, if any."""
+        robot_name = self.get_robot_name(agent_name)
+        robot_state = getattr(obs, robot_name)
+        contacts = robot_state.contacts
+        for item_name in self.item_names:
+            if item_name in contacts:
+                return item_name
+        return None
 
     def describe_robot_state(self, obs, robot_name):
         robot_state = getattr(obs, robot_name)
@@ -424,4 +452,3 @@ if __name__ == "__main__":
     plt.imshow(img)
     plt.show()
     breakpoint()
-

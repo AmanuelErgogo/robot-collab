@@ -14,7 +14,22 @@ import matplotlib.pyplot as plt
 
 from rocobench.envs import SortOneBlockTask, CabinetTask, MoveRopeTask, SweepTask, MakeSandwichTask, PackGroceryTask, MujocoSimEnv, SimRobot, visualize_voxel_scene
 from rocobench import PlannedPathPolicy, LLMPathPlan, MultiArmRRT
-from prompting import LLMResponseParser, FeedbackManager, DialogPrompter, SingleThreadPrompter, save_episode_html
+from rocobench.skills import (
+    PackGrocerySkillPlanValidator,
+    RRTSkillCompiler,
+    RRTSkillExecutor,
+    build_pack_grocery_skill_registry,
+)
+from prompting import (
+    DialogPrompter,
+    FeedbackManager,
+    LLMResponseParser,
+    PackGrocerySkillPromptProvider,
+    SingleThreadPrompter,
+    SkillFeedbackManager,
+    SkillResponseParser,
+    save_episode_html,
+)
 
 # print out logging.info
 logging.basicConfig(level=logging.INFO)
@@ -97,26 +112,77 @@ class LLMRunner:
         self.policy_kwargs = policy_kwargs
         self.video_format = video_format
         self.skip_display = skip_display
-        self.split_parsed_plans = split_parsed_plans
+        self.split_parsed_plans = split_parsed_plans 
         self.temperature = temperature
-        self.parser = LLMResponseParser(
-            self.env,
-            llm_output_mode,
-            self.env.robot_name_map,
-            self.response_keywords,
-            self.direct_waypoints,
-            use_prepick=self.env.use_prepick,
-            use_preplace=self.env.use_preplace, # NOTE: should be custom defined in each task env
-            split_parsed_plans=False, # self.split_parsed_plans,
-        )
-        self.feedback_manager = FeedbackManager(
-            env=self.env,
-            planner=self.planner,
-            llm_output_mode=self.llm_output_mode,
-            robot_name_map=self.env.robot_name_map,
-            step_std_threshold=self.env.waypoint_std_threshold,
-            max_failed_waypoints=self.max_failed_waypoints,
-        )
+        self.skill_executor = None
+        prompt_provider = None
+        if self.llm_output_mode == "skill":
+            self.skill_registry = build_pack_grocery_skill_registry(self.robot_agent_names)
+            prompt_provider = PackGrocerySkillPromptProvider(
+                env=self.env,
+                registry=self.skill_registry,
+                agent_names=self.robot_agent_names,
+            )
+            self.parser = SkillResponseParser(
+                registry=self.skill_registry,
+                agent_names=self.robot_agent_names,
+            )
+            legacy_parser = LLMResponseParser(
+                self.env,
+                "action_only",
+                self.env.robot_name_map,
+                ['NAME', 'ACTION'],
+                self.direct_waypoints,
+                use_prepick=self.env.use_prepick,
+                use_preplace=self.env.use_preplace,
+                split_parsed_plans=False,
+            )
+            geometric_feedback_manager = FeedbackManager(
+                env=self.env,
+                planner=self.planner,
+                llm_output_mode="action_only",
+                robot_name_map=self.env.robot_name_map,
+                step_std_threshold=self.env.waypoint_std_threshold,
+                max_failed_waypoints=self.max_failed_waypoints,
+            )
+            validator = PackGrocerySkillPlanValidator(
+                env=self.env,
+                registry=self.skill_registry,
+                agent_names=self.robot_agent_names,
+            )
+            compiler = RRTSkillCompiler(env=self.env, legacy_parser=legacy_parser)
+            self.feedback_manager = SkillFeedbackManager(
+                validator=validator,
+                compiler=compiler,
+                geometric_feedback_manager=geometric_feedback_manager,
+            )
+            self.skill_executor = RRTSkillExecutor(
+                env=self.env,
+                robots=self.robots,
+                policy_kwargs=self.policy_kwargs,
+                plan_splitted=self.split_parsed_plans,
+                max_sim_steps=5000,
+                video_format=self.video_format,
+            )
+        else:
+            self.parser = LLMResponseParser(
+                self.env,
+                llm_output_mode,
+                self.env.robot_name_map,
+                self.response_keywords,
+                self.direct_waypoints,
+                use_prepick=self.env.use_prepick,
+                use_preplace=self.env.use_preplace, # NOTE: should be custom defined in each task env
+                split_parsed_plans=False, # self.split_parsed_plans,
+            )
+            self.feedback_manager = FeedbackManager(
+                env=self.env,
+                planner=self.planner,
+                llm_output_mode=self.llm_output_mode,
+                robot_name_map=self.env.robot_name_map,
+                step_std_threshold=self.env.waypoint_std_threshold,
+                max_failed_waypoints=self.max_failed_waypoints,
+            )
         if llm_comm_mode in ["plan", "chat"]:
             logging.warning(f'Using SingleThreadPrompter for {llm_comm_mode} mode')
             self.prompter = SingleThreadPrompter(
@@ -131,6 +197,7 @@ class LLMRunner:
                 comm_mode=llm_comm_mode,
                 temperature=self.temperature,
                 llm_source=llm_source,
+                prompt_provider=prompt_provider,
             )
 
         else:
@@ -148,6 +215,7 @@ class LLMRunner:
                 num_replans=self.llm_num_replans,
                 temperature=self.temperature,
                 llm_source=llm_source,
+                prompt_provider=prompt_provider,
             )
 
 
@@ -218,20 +286,70 @@ class LLMRunner:
                     print(f"Run {run_id}: Step {step} failed to get a plan from LLM. Move on to next step.")
                     continue
 
-                if not self.skip_display:
+                if self.llm_output_mode != "skill" and not self.skip_display:
                     for i, plan in enumerate(current_llm_plan):
                         self.display_plan(plan, save_name=f"vis_llm_plan_{i}", save_dir=step_dir)
 
 
-                for i, plan in enumerate(current_llm_plan):
-                    save_fname = os.path.join(step_dir, f"llm_plan_{i}.pkl")
-                    with open(save_fname, "wb") as f:
-                        pickle.dump(plan, f)
+                if self.llm_output_mode != "skill":
+                    for i, plan in enumerate(current_llm_plan):
+                        save_fname = os.path.join(step_dir, f"llm_plan_{i}.pkl")
+                        with open(save_fname, "wb") as f:
+                            pickle.dump(plan, f)
 
 
             logging.info(f"Step: {step} LLM plan parsed, begin RRT planning ")
             # try execute this plan, if one of the plan failed, rewind the env to before the first plan was executed!
             rewind_env = False
+
+            if self.llm_output_mode == "skill":
+                skill_plan = current_llm_plan[0]
+                with open(os.path.join(step_dir, "skill_plan.json"), "w") as f:
+                    json.dump(skill_plan.to_dict(), f, indent=2)
+
+                if skill_plan.prepared_execution is not None:
+                    preparation = {
+                        "plan_id": skill_plan.plan_id,
+                        "backend": skill_plan.prepared_execution.backend_name,
+                        "synthetic_response": skill_plan.prepared_execution.metadata.get("synthetic_response", ""),
+                        "compiled_plan_count": len(skill_plan.prepared_execution.compiled_plans),
+                    }
+                    with open(os.path.join(step_dir, "skill_preparation.json"), "w") as f:
+                        json.dump(preparation, f, indent=2)
+
+                result = self.skill_executor.execute(
+                    skill_plan,
+                    obs,
+                    artifact_dir=step_dir,
+                )
+                with open(os.path.join(step_dir, "skill_execution_result.json"), "w") as f:
+                    json.dump(result.to_dict(), f, indent=2, default=str)
+
+                if not result.success:
+                    print("Skill plan failed to execute: {}".format(result.reason))
+                    rewind_env = True
+                    env.load_saved_state(sim_data)
+                else:
+                    reward = result.reward
+                    done = result.done
+                    obs = env.get_obs()
+                    sim_data = env.save_intermediate_state()
+                    if result.num_sim_steps > 0:
+                        print("Skill plan executed for {} simulation steps.".format(result.num_sim_steps))
+
+                data_fname = f"{step_dir}/env_end.pkl"
+                with open(data_fname, "wb") as f:
+                    pickle.dump(sim_data, f)
+
+                self.prompter.post_execute_update(
+                    obs_desp="",
+                    execute_success=(not rewind_env),
+                    parsed_plan=skill_plan.get_action_desp()
+                )
+
+                if done:
+                    break
+                continue
 
             for i, plan in enumerate(current_llm_plan):
                 print('tograsp:', plan.tograsp, 'inhand:', plan.inhand, plan.action_strs)
@@ -381,8 +499,12 @@ class LLMRunner:
 
 def main(args):
     assert args.task in TASK_NAME_MAP.keys(), f"Task {args.task} not supported"
+    if args.output_mode == "skill" and args.task != "pack":
+        raise ValueError("Skill mode is currently implemented only for --task pack.")
     env_cl = TASK_NAME_MAP[args.task]
     if args.task == 'rope':
+        if args.output_mode == "skill":
+            raise ValueError("Skill mode is currently implemented only for --task pack.")
         args.output_mode = 'action_and_path'
         args.split_parsed_plans = True
         logging.warning("MoveRopeTask requires split parsed plans\n")
@@ -395,7 +517,8 @@ def main(args):
             logging.warning("MoveRope needs only 5 tsteps\n")
 
     elif args.task == 'pack':
-        args.output_mode = 'action_and_path'
+        if args.output_mode != "skill":
+            args.output_mode = 'action_and_path'
         args.control_freq = 10
         args.split_parsed_plans = True
         args.max_failed_waypoints = 0
@@ -471,7 +594,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_name", "-rn", type=str, default="test")
     parser.add_argument("--tsteps", "-t", type=int, default=10)
     parser.add_argument("--task", type=str, default="sort_one")
-    parser.add_argument("--output_mode", type=str, default="action_only", choices=["action_only", "action_and_path"])
+    parser.add_argument("--output_mode", type=str, default="action_only", choices=["action_only", "action_and_path", "skill"])
     parser.add_argument("--comm_mode", type=str, default="dialog", choices=["chat", "plan", "dialog"])
     parser.add_argument("--control_freq", "-cf", type=int, default=15)
     parser.add_argument("--skip_display", "-sd", action="store_true")

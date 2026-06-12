@@ -24,8 +24,19 @@ Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
 """
-OPENAI_KEY = str(json.load(open("openai_key.json")))
-openai.api_key = OPENAI_KEY
+
+_OPENAI_CONFIGURED = False
+
+
+def _ensure_openai_configured():
+    global _OPENAI_CONFIGURED
+    if _OPENAI_CONFIGURED:
+        return
+    if not os.path.exists("openai_key.json"):
+        raise FileNotFoundError("Please put your OpenAI API key in robot-collab/openai_key.json")
+    with open("openai_key.json", "r") as f:
+        openai.api_key = str(json.load(f))
+    _OPENAI_CONFIGURED = True
 
 
 def get_chat_prompt(env: MujocoSimEnv):
@@ -66,6 +77,7 @@ class SingleThreadPrompter:
         temperature: float = 0,
         max_tokens: int = 1000, 
         llm_source: str = "gpt-4",
+        prompt_provider: Optional[Any] = None,
     ):
         self.env = env 
         self.robot_agent_names = env.get_sim_robots().keys()
@@ -80,6 +92,7 @@ class SingleThreadPrompter:
         self.temperature = temperature
         self.llm_source = llm_source
         self.max_tokens = max_tokens
+        self.prompt_provider = prompt_provider
 
         self.round_history = [] # [obs_t, action_t] but only if action_t got executed
         self.failed_plans = [] # could inherit from previous round if the final plan failed to execute in env.
@@ -113,22 +126,27 @@ class SingleThreadPrompter:
         
     def compose_system_prompt(
         self,
+        obs: EnvState,
         obs_desp: str,
         plan_feedbacks: List[str] = [], 
         ):
         
-        task_desp = self.env.describe_task_context() # should include task rules
-        action_desp = self.env.get_action_prompt()
-        if self.use_waypoints:
-            action_desp += PATH_PLAN_INSTRUCTION
-
-        full_prompt = f"{task_desp}\n{action_desp}\n" 
+        if self.prompt_provider is None:
+            task_desp = self.env.describe_task_context() # should include task rules
+            action_desp = self.env.get_action_prompt()
+            if self.use_waypoints:
+                action_desp += PATH_PLAN_INSTRUCTION
+            full_prompt = f"{task_desp}\n{action_desp}\n" 
+            state_prompt = obs_desp
+        else:
+            full_prompt = "{}\n".format(self.prompt_provider.get_action_prompt(obs, None))
+            state_prompt = self.prompt_provider.get_agent_prompt(obs, None)
         
         if self.use_history:
             history_desp = self.compose_round_history() 
             full_prompt += history_desp + "\n" 
         
-        full_prompt += obs_desp + "\n"
+        full_prompt += state_prompt + "\n"
 
         if len(self.failed_plans) > 0:
             execute_feedback = "Plans below failed to execute, improve them to avoid collision and smoothly reach the targets:\n"
@@ -155,7 +173,7 @@ class SingleThreadPrompter:
         response_history = []
         obs_desp = self.env.describe_obs(obs)
         for i in range(self.num_replans): 
-            system_prompt = self.compose_system_prompt(obs_desp, plan_feedbacks)
+            system_prompt = self.compose_system_prompt(obs, obs_desp, plan_feedbacks)
             response, usage = self.query_once(
                 system_prompt, user_prompt=""
                 ) # NOTE: single_thread doesn't use user role
@@ -196,6 +214,8 @@ Re-format to strictly follow [Action Output Instruction]!
             else:
                 ready_to_execute = True
                 for j, llm_plan in enumerate(llm_plans): 
+                    if hasattr(self.feedback_manager, "update_obs"):
+                        self.feedback_manager.update_obs(obs)
                     ready_to_execute, env_feedback = self.feedback_manager.give_feedback(llm_plan)        
                     if not ready_to_execute:
                         curr_feedback = env_feedback
@@ -237,6 +257,7 @@ Re-format to strictly follow [Action Output Instruction]!
         for n in range(self.max_api_queries):
             print('querying {}th time'.format(n))
             try:
+                _ensure_openai_configured()
                 response = openai.ChatCompletion.create(
                     model=self.llm_source,
                     messages=[
