@@ -17,6 +17,24 @@ class EpisodeWriteError(RuntimeError):
     pass
 
 
+NATIVE_ACTION_KEYS = (
+    "ctrl_idxs",
+    "ctrl_vals",
+    "qpos_idxs",
+    "qpos_target",
+    "eq_active_idxs",
+    "eq_active_vals",
+)
+
+LEROBOT_MANAGED_FRAME_KEYS = (
+    "timestamp",
+    "frame_index",
+    "episode_index",
+    "index",
+    "task_index",
+)
+
+
 def _episode_dir(root: str, episode_id: str) -> str:
     return os.path.join(root, "episodes", episode_id)
 
@@ -85,6 +103,44 @@ def load_episode_arrays(episode_path: str) -> Dict[str, np.ndarray]:
         return {key: data[key] for key in data.files}
 
 
+def native_actions_path(episode_path: str) -> str:
+    return os.path.join(episode_path, "native_actions.npz")
+
+
+def _write_native_actions(stage_path: str, record: EpisodeRecord) -> None:
+    if not any(frame.native_action for frame in record.frames):
+        return
+    arrays: Dict[str, np.ndarray] = {
+        "num_actions": np.asarray([record.frame_count], dtype=np.int32),
+    }
+    for index, frame in enumerate(record.frames):
+        payload = dict(frame.native_action or {})
+        for key in NATIVE_ACTION_KEYS:
+            value = payload.get(key)
+            if value is None:
+                dtype = np.float32 if key.endswith("vals") or key == "qpos_target" else np.int32
+                value = np.asarray([], dtype=dtype)
+            arrays["action_{:06d}_{}".format(index, key)] = np.ascontiguousarray(value)
+    np.savez_compressed(native_actions_path(stage_path), **arrays)
+
+
+def load_native_action_payloads(episode_path: str) -> List[Dict[str, np.ndarray]]:
+    path = native_actions_path(episode_path)
+    if not os.path.exists(path):
+        return []
+    with np.load(path) as data:
+        count = int(np.asarray(data["num_actions"])[0])
+        payloads = []
+        for index in range(count):
+            payload = {}
+            for key in NATIVE_ACTION_KEYS:
+                name = "action_{:06d}_{}".format(index, key)
+                if name in data:
+                    payload[key] = data[name]
+            payloads.append(payload)
+    return payloads
+
+
 def load_episode_metadata(episode_path: str) -> Dict[str, Any]:
     return read_json(os.path.join(episode_path, "metadata.json"))
 
@@ -93,6 +149,7 @@ def _write_episode_payload(stage_path: str, record: EpisodeRecord) -> None:
     os.makedirs(stage_path, exist_ok=False)
     arrays = episode_to_arrays(record)
     np.savez_compressed(os.path.join(stage_path, "frames.npz"), **arrays)
+    _write_native_actions(stage_path, record)
     metadata = dict(record.metadata)
     metadata.update(
         {
@@ -151,6 +208,9 @@ class AtomicEpisodeWriter:
             manifest = DatasetManifest.from_dict(read_json(self.manifest_path))
             if manifest.schema_hash != self.schema.schema_hash:
                 raise EpisodeWriteError("existing manifest schema hash does not match requested schema")
+            if self.overwrite:
+                manifest = DatasetManifest.create(self.schema, repo_root=self.repo_root)
+                atomic_write_json(self.manifest_path, manifest.to_dict())
             return
         manifest = DatasetManifest.create(self.schema, repo_root=self.repo_root)
         atomic_write_json(self.manifest_path, manifest.to_dict())
@@ -254,6 +314,26 @@ def _import_lerobot_dataset() -> Any:
     return LeRobotDataset
 
 
+def _add_lerobot_frame(dataset: Any, frame: Mapping[str, Any], task: Optional[str]) -> None:
+    """Add one frame across LeRobot versions with different task APIs."""
+    payload = dict(frame)
+    try:
+        dataset.add_frame(payload, task=task)
+        return
+    except TypeError:
+        pass
+    if task is not None and "task" not in payload:
+        payload["task"] = task
+    try:
+        dataset.add_frame(payload)
+        return
+    except ValueError as exc:
+        if "Extra features" not in str(exc):
+            raise
+    trimmed = {key: value for key, value in payload.items() if key not in LEROBOT_MANAGED_FRAME_KEYS}
+    dataset.add_frame(trimmed)
+
+
 def export_records_to_lerobot(
     records: Iterable[EpisodeRecord],
     schema: SkillDataSchema,
@@ -280,12 +360,9 @@ def export_records_to_lerobot(
         kwargs["robot_type"] = robot_type
     dataset = LeRobotDataset.create(**kwargs)
     for record in records:
+        task = record.metadata.get("natural_language_instruction")
         for frame in record.frames:
-            features = frame.to_feature_dict()
-            try:
-                dataset.add_frame(features, task=record.metadata.get("natural_language_instruction"))
-            except TypeError:
-                dataset.add_frame(features)
+            _add_lerobot_frame(dataset, frame.to_feature_dict(), task=task)
         dataset.save_episode()
     if hasattr(dataset, "finalize"):
         dataset.finalize()
@@ -337,12 +414,10 @@ def export_local_dataset_to_lerobot(
             continue
         metadata = load_episode_metadata(episode_path)
         arrays = load_episode_arrays(episode_path)
+        task = metadata.get("natural_language_instruction")
         for frame in arrays_to_frame_features(arrays):
             payload = _frame_for_lerobot(frame, schema)
-            try:
-                dataset.add_frame(payload, task=metadata.get("natural_language_instruction"))
-            except TypeError:
-                dataset.add_frame(payload)
+            _add_lerobot_frame(dataset, payload, task=task)
         dataset.save_episode()
     if hasattr(dataset, "finalize"):
         dataset.finalize()

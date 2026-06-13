@@ -6,10 +6,10 @@ from typing import Any, Dict, Mapping, Optional
 
 import numpy as np
 
-from integrations.lerobot_roco.roco_runtime.action_adapter import RoCoActionAdapter
+from integrations.lerobot_roco.roco_runtime.action_adapter import RoCoActionAdapter, decode_sim_action
 
 from .episode_sampler import VariationSpec, reset_env_for_variation
-from .writer import load_episode_arrays, load_episode_metadata
+from .writer import load_episode_arrays, load_episode_metadata, load_native_action_payloads
 
 
 @dataclass
@@ -57,6 +57,7 @@ def replay_episode(
     episode_path = os.path.join(dataset_root, "episodes", episode_id)
     metadata = load_episode_metadata(episode_path)
     arrays = load_episode_arrays(episode_path)
+    native_payloads = load_native_action_payloads(episode_path)
     variation = VariationSpec.from_dict(metadata["variation"])
     reset_env_for_variation(env, variation)
     adapter = RoCoActionAdapter(env, active_agent)
@@ -67,8 +68,15 @@ def replay_episode(
     reward = 0.0
     done = False
     info: Dict[str, Any] = {}
-    for action in arrays["action"]:
-        sim_action, _ = adapter.to_sim_action(action)
+    use_native = len(native_payloads) == int(arrays["action"].shape[0])
+    model = env.physics.model
+    model_nu = int(getattr(model, "nu", len(getattr(model, "actuator_ctrlrange", []))))
+    model_neq = int(getattr(model, "neq", len(getattr(model, "eq_active", []))))
+    for index, action in enumerate(arrays["action"]):
+        if use_native:
+            sim_action = decode_sim_action(native_payloads[index], model_nu=model_nu, model_neq=model_neq)
+        else:
+            sim_action, _ = adapter.to_sim_action(action)
         obs, reward, done, info = env.step(sim_action, verbose=False)
         if done:
             termination_reason = "environment_done"
@@ -98,5 +106,8 @@ def replay_episode(
         frame_count=int(arrays["action"].shape[0]),
         termination_reason=termination_reason,
         drift=drift,
-        details={"expected_success": metadata.get("success")},
+        details={
+            "expected_success": metadata.get("success"),
+            "replay_action_source": "native_sim_action" if use_native else "public_action",
+        },
     )

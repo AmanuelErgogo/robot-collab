@@ -9,7 +9,7 @@ import numpy as np
 from .manifest import atomic_write_json, read_json
 from .schema import SkillDataSchema
 from .splitter import detect_split_leakage
-from .writer import load_episode_arrays, load_episode_metadata
+from .writer import load_episode_arrays, load_episode_metadata, load_native_action_payloads
 
 
 @dataclass(frozen=True)
@@ -178,6 +178,17 @@ def _check_episode(
     else:
         report.add("FRAME_INDEX_ERROR", "missing frame_index", episode_id=episode_id)
 
+    native_payloads = load_native_action_payloads(os.path.join(report.dataset_root, "episodes", episode_id))
+    if not native_payloads:
+        report.add(
+            "NATIVE_ACTION_SIDECAR_MISSING",
+            "native SimAction sidecar is missing; public action replay may lose grasp/equality toggles",
+            severity="warning",
+            episode_id=episode_id,
+        )
+    elif len(native_payloads) != frame_count:
+        report.add("NATIVE_ACTION_ALIGNMENT_ERROR", "native action count does not match frame count", episode_id=episode_id)
+
     required_meta = [
         "episode_id",
         "seed",
@@ -202,7 +213,16 @@ def _check_episode(
 
 
 def _check_lerobot_load(report: ValidationReport, dataset_root: str, require_lerobot: bool) -> None:
-    has_lerobot_layout = os.path.exists(os.path.join(dataset_root, "meta", "info.json"))
+    load_root = dataset_root
+    export_path = os.path.join(dataset_root, "lerobot_export.json")
+    if not os.path.exists(os.path.join(load_root, "meta", "info.json")) and os.path.exists(export_path):
+        try:
+            export_info = read_json(export_path)
+            load_root = os.path.abspath(str(export_info.get("lerobot_root", dataset_root)))
+            report.summary["lerobot_export_root"] = load_root
+        except Exception as exc:
+            report.add("LEROBOT_EXPORT_METADATA_ERROR", str(exc), severity="error" if require_lerobot else "warning")
+    has_lerobot_layout = os.path.exists(os.path.join(load_root, "meta", "info.json"))
     if not has_lerobot_layout:
         severity = "error" if require_lerobot else "warning"
         report.add("LEROBOT_LOAD_SKIPPED", "no LeRobot meta/info.json found", severity=severity)
@@ -212,7 +232,15 @@ def _check_lerobot_load(report: ValidationReport, dataset_root: str, require_ler
             from lerobot.datasets import LeRobotDataset
         except Exception:
             from lerobot.datasets.lerobot_dataset import LeRobotDataset
-        dataset = LeRobotDataset(root=dataset_root)
+        repo_id = None
+        if os.path.exists(export_path):
+            try:
+                repo_id = read_json(export_path).get("repo_id")
+            except Exception:
+                repo_id = None
+        if repo_id is None:
+            repo_id = "local/roco-pack-put-object-debug"
+        dataset = LeRobotDataset(repo_id=repo_id, root=load_root)
         report.summary["lerobot_len"] = len(dataset)
     except Exception as exc:
         severity = "error" if require_lerobot else "warning"
@@ -265,13 +293,33 @@ def validate_dataset(
 
     split_path = os.path.join(dataset_root, "splits.json")
     if os.path.exists(split_path):
-        leaks = detect_split_leakage(read_json(split_path))
+        split_manifest = read_json(split_path)
+        leaks = detect_split_leakage(split_manifest)
         for variation_id in leaks:
             report.add("SPLIT_LEAKAGE", "variation appears in multiple splits: {}".format(variation_id))
+        split_episode_ids = set()
+        for ids in split_manifest.get("splits", {}).values():
+            split_episode_ids.update(str(x) for x in ids)
+        episode_id_set = set(episode_ids)
+        missing_from_splits = sorted(episode_id_set.difference(split_episode_ids))
+        unknown_in_splits = sorted(split_episode_ids.difference(episode_id_set))
+        if missing_from_splits:
+            report.add("SPLIT_INCOMPLETE", "episodes missing from splits: {}".format(missing_from_splits))
+        if unknown_in_splits:
+            report.add("SPLIT_UNKNOWN_EPISODE", "splits reference unknown episodes: {}".format(unknown_in_splits))
     else:
         report.add("SPLIT_MISSING", "splits.json not found", severity="warning")
 
     _check_lerobot_load(report, dataset_root, require_lerobot=require_lerobot)
+
+    if os.path.exists(manifest_path):
+        manifest = read_json(manifest_path)
+        committed = int(manifest.get("episodes_committed", -1))
+        if committed != len(episode_ids):
+            report.add(
+                "MANIFEST_COUNT_MISMATCH",
+                "episodes_committed {} does not match episode directories {}".format(committed, len(episode_ids)),
+            )
 
     report.summary.update(
         {

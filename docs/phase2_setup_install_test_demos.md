@@ -6,7 +6,7 @@ This runbook sets up and exercises the Phase 2 expert dataset pipeline:
 deterministic variation
   -> typed PUT_OBJECT_IN_CONTAINER fixture
   -> RRT expert execution
-  -> pre-action observation/action recording
+  -> pre-action observation/action/native SimAction recording
   -> atomic commit or quarantine
   -> validation, splits, replay, visualization
   -> optional LeRobotDataset v3 export/load
@@ -55,6 +55,10 @@ sample[t].observation = observation immediately before action[t]
 sample[t].action      = action actually applied after that observation
 sample[t].timestamp   = simulator time for that observation
 ```
+
+The public `action` vector is the LeRobot training target. Each episode also
+stores `native_actions.npz`, which preserves the exact `SimAction` payload used
+by RoCo replay, including equality/grasp attach and release toggles.
 
 ## 2. Environment Options
 
@@ -291,9 +295,11 @@ python scripts/replay_roco_dataset_episode.py \
   --compare
 ```
 
-Replay resets from the saved variation and applies the recorded public action
-vectors through the Phase 0 action adapter. The command reports success, frame
-count, termination reason, and optional state drift diagnostics.
+Replay resets from the saved variation and applies the recorded native
+`SimAction` sidecar when present. The command reports success, frame count,
+termination reason, action source, and optional state drift diagnostics. If the
+native sidecar is missing, replay falls back to public action vectors through
+the Phase 0 action adapter.
 
 Do not count Phase 2 as passing the replay gate unless this command actually
 runs in a simulator-backed environment.
@@ -312,7 +318,7 @@ export_local_dataset_to_lerobot(
     lerobot_root="artifacts/datasets/pack_put_object_debug_lerobot",
     repo_id="local/roco-pack-put-object-debug",
     robot_type="roco_pack_alice",
-    use_videos=True,
+    use_videos=False,
 )
 print("exported")
 PY
@@ -341,8 +347,8 @@ Finally validate with LeRobot loading required:
 
 ```bash
 python scripts/validate_roco_dataset.py \
-  --dataset-root artifacts/datasets/pack_put_object_debug_lerobot \
-  --report-dir artifacts/datasets/pack_put_object_debug_lerobot/reports \
+  --dataset-root artifacts/datasets/pack_put_object_debug \
+  --report-dir artifacts/datasets/pack_put_object_debug/reports \
   --require-lerobot
 ```
 
@@ -419,7 +425,7 @@ export_local_dataset_to_lerobot(
     lerobot_root="artifacts/datasets/pack_put_object_debug_lerobot",
     repo_id="local/roco-pack-put-object-debug",
     robot_type="roco_pack_alice",
-    use_videos=True,
+    use_videos=False,
 )
 dataset = LeRobotDataset(
     repo_id="local/roco-pack-put-object-debug",
@@ -459,6 +465,7 @@ artifacts/datasets/<name>/
   splits.json
   episodes/<episode_id>/
     frames.npz
+    native_actions.npz
     metadata.json
     variation.json
   quarantine/<episode_id>/
