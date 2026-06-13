@@ -1,0 +1,29 @@
+task_id: pack
+skill_id: PUT_OBJECT_IN_CONTAINER
+active_agent: Alice
+passive_agents:
+  - Bob
+object_names:
+  - apple
+target_names:
+  - bin_front_left
+image_height: 96
+image_width: 96
+camera_aliases:
+  front: teaser
+  active_agent: face_ur5e
+max_episode_steps: 80
+min_episode_frames: 1
+max_episode_frames: 1000
+expert_backend: rrt
+expert_place_target_overrides:
+  bin_front_left: bin_front_right
+action_representation: absolute_joint_position_plus_gripper
+output_root: artifacts/datasets/pack_put_object_debug
+repo_id: local/roco-pack-put-object-debug
+robot_type: roco_pack_alice
+use_videos: false
+resume: true
+overwrite: false
+randomize_init: false
+render_point_cloud: false
