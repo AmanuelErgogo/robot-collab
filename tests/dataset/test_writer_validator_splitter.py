@@ -6,7 +6,11 @@ from integrations.lerobot_roco.dataset.recorder import EpisodeRecord, Transition
 from integrations.lerobot_roco.dataset.schema import default_schema_for_tests
 from integrations.lerobot_roco.dataset.splitter import create_variation_group_splits, detect_split_leakage
 from integrations.lerobot_roco.dataset.validator import validate_dataset
-from integrations.lerobot_roco.dataset.writer import AtomicEpisodeWriter, export_local_dataset_to_lerobot
+from integrations.lerobot_roco.dataset.writer import (
+    AtomicEpisodeWriter,
+    export_local_dataset_to_lerobot,
+    load_native_action_payloads,
+)
 
 
 def make_record(schema, episode_index=0, action_value=0.1, variation=None):
@@ -30,6 +34,14 @@ def make_record(schema, episode_index=0, action_value=0.1, variation=None):
         frame_index=0,
         episode_index=episode_index,
         env_step_index=0,
+        native_action={
+            "ctrl_idxs": np.asarray([0, 1], dtype=np.int32),
+            "ctrl_vals": np.asarray([action_value, action_value], dtype=np.float32),
+            "qpos_idxs": np.asarray([0], dtype=np.int32),
+            "qpos_target": np.asarray([action_value], dtype=np.float32),
+            "eq_active_idxs": np.asarray([], dtype=np.int32),
+            "eq_active_vals": np.asarray([], dtype=np.int32),
+        },
     )
     metadata = {
         "episode_id": "episode_{:06d}".format(episode_index),
@@ -75,6 +87,7 @@ def test_atomic_writer_resume_and_validator(tmp_path):
     assert skipped_status == "skipped"
     assert skipped_episode_id == "episode_000000"
     assert report.ok
+    assert load_native_action_payloads(str(tmp_path / "episodes" / "episode_000000"))[0]["ctrl_idxs"].tolist() == [0, 1]
 
 
 def test_writer_quarantines_failed_attempt(tmp_path):

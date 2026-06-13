@@ -77,6 +77,10 @@ def test_observer_records_pre_action_observation_and_applied_action():
     sim_action = SimpleNamespace(
         ctrl_idxs=np.asarray([0, 1], dtype=np.int32),
         ctrl_vals=np.asarray([0.75, 0.25], dtype=np.float32),
+        qpos_idxs=np.asarray([0], dtype=np.int32),
+        qpos_target=np.asarray([0.75], dtype=np.float32),
+        eq_active_idxs=None,
+        eq_active_vals=None,
     )
 
     observer.before_step("obs0", sim_action, {"plan_index": 0})
@@ -87,6 +91,7 @@ def test_observer_records_pre_action_observation_and_applied_action():
     assert features["observation.state"][0] == 0.0
     assert features["action"].tolist() == [0.75, 0.25]
     assert features["timestamp"] == 0.0
+    assert frame.native_action["ctrl_idxs"].tolist() == [0, 1]
     assert env.physics.data.qpos[0] == 0.75
 
 

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Mapping, Optional, Protocol
 
 import numpy as np
 
-from integrations.lerobot_roco.roco_runtime.action_adapter import build_action_layout
+from integrations.lerobot_roco.roco_runtime.action_adapter import build_action_layout, encode_sim_action
 from integrations.lerobot_roco.roco_runtime.observation_adapter import RoCoObservationAdapter
 
 from .episode_sampler import VariationSpec
@@ -30,6 +30,7 @@ class TransitionFrame:
     env_step_index: int
     metadata: Mapping[str, Any] = field(default_factory=dict)
     subtask_stage: Optional[str] = None
+    native_action: Optional[Mapping[str, np.ndarray]] = None
 
     def to_feature_dict(self) -> Dict[str, Any]:
         pixels = self.observation["pixels"]
@@ -177,6 +178,7 @@ class RocoTransitionObserver:
         del observation
         formatted = self.observation_adapter.format(None)
         public_action = public_action_from_sim_action(action, self.action_layout, env=self.env)
+        native_action = encode_sim_action(action)
         if not np.all(np.isfinite(public_action)):
             raise ValueError("public action contains NaN or Inf")
         low = self.schema.action_feature.low
@@ -195,6 +197,7 @@ class RocoTransitionObserver:
                 episode_index=self.episode_index,
                 env_step_index=int(getattr(self.env, "timestep", frame_index)),
                 metadata=_metadata_without_arrays(metadata),
+                native_action=native_action,
             )
         )
 
