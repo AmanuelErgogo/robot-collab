@@ -1,0 +1,52 @@
+# skill_spec_template.yaml
+name: PUT_OBJECT_IN_CONTAINER
+version: "1.0"
+description: Pick an object if needed and place it inside a target container.
+
+arguments:
+  object:
+    type: object
+    required: true
+  container:
+    type: receptacle
+    required: true
+
+supported_agent_types:
+  - robot
+  - simulated_human
+  - real_human
+
+preconditions:
+  - object_exists(object)
+  - container_exists(container)
+  - target_not_occupied(container)
+  - agent_available(agent)
+
+postconditions:
+  - object_inside(object, container)
+  - agent_not_holding(agent, object)
+
+resources:
+  exclusive:
+    - object:{object}
+    - container:{container}
+  workspace:
+    - corridor(agent, object, container)
+
+failure_modes:
+  - MISSED_GRASP
+  - SLIPPAGE
+  - TIMEOUT
+  - TARGET_OCCUPIED
+  - SAFETY_CONFLICT
+
+backends:
+  rrt:
+    enabled: true
+  act:
+    enabled: true
+    checkpoint: null
+  scripted:
+    enabled: false
+  simulated_human:
+    enabled: true
