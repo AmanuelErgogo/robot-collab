@@ -1,0 +1,49 @@
+executor:
+  task_id: pack
+  embodiment_id: ur5e_robotiq
+  max_active_calls: 1
+  stable_success_checks: 2
+  no_progress_window: 20
+  no_progress_patience: 3
+  no_progress_state_epsilon: 0.0001
+  no_progress_action_epsilon: 0.0001
+  action_bound_tolerance: 0.00001
+  policy_cache_size: 1
+  fallback:
+    mode: return_request
+    backend: rrt
+    allowed_reasons:
+      - POLICY_INFERENCE_FAILURE
+      - NO_PROGRESS
+    max_fallbacks: 1
+
+policies:
+  - policy_id: act_pack_put_alice_debug
+    skill_name: PUT_OBJECT_IN_CONTAINER
+    agent_name: Alice
+    embodiment_id: ur5e_robotiq
+    task_id: pack
+    checkpoint: artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model
+    checkpoint_revision: "000050"
+    policy_type: ACT
+    schema_hash: 7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a
+    action_representation: absolute_joint_position_plus_gripper
+    cameras:
+      - front
+      - active_agent
+    max_steps: 80
+    execution_horizon: 5
+    success_monitor: stable_pack_put_predicate
+    failure_monitors:
+      - TIMEOUT
+      - NONFINITE_ACTION
+      - ACTION_OUT_OF_BOUNDS
+      - NO_PROGRESS
+      - OBJECT_LOST
+      - TARGET_OCCUPIED
+      - COLLISION_RISK
+      - BRIDGE_FAILURE
+      - POLICY_INFERENCE_FAILURE
+      - MANUAL_INTERRUPT
+    enabled: true
+
