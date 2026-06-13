@@ -1,0 +1,17 @@
+{
+  "action_representation": "absolute_joint_position_plus_gripper",
+  "bridge_protocol": "0.1",
+  "created_utc": "2026-06-12T23:45:54Z",
+  "cuda": null,
+  "datasets": null,
+  "gymnasium": null,
+  "lerobot_commit": null,
+  "lerobot_version": null,
+  "python": "3.8.20",
+  "pytorch": null,
+  "roco_commit": "937ed69af17c1b8c0ce4ae3c5c2768607f9decd7",
+  "roco_dirty": true,
+  "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+  "schema_version": "1.0",
+  "transformers": null
+}

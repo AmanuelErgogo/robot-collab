@@ -1,0 +1,37 @@
+task_id: pack
+skill_id: PUT_OBJECT_IN_CONTAINER
+active_agent: Alice
+passive_agents:
+  - Bob
+object_names:
+  - apple
+  - banana
+  - milk
+  - soda_can
+  - bread
+  - cereal
+target_names:
+  - bin_front_left
+  - bin_front_right
+  - bin_front_middle
+  - bin_back_left
+  - bin_back_right
+  - bin_back_middle
+image_height: 256
+image_width: 256
+camera_aliases:
+  front: teaser
+  active_agent: face_ur5e
+max_episode_steps: 300
+min_episode_frames: 1
+max_episode_frames: 10000
+expert_backend: rrt
+action_representation: absolute_joint_position_plus_gripper
+output_root: artifacts/datasets/pack_put_object_v1
+repo_id: local/roco-pack-put-object
+robot_type: roco_pack_alice
+use_videos: true
+resume: true
+overwrite: false
+randomize_init: true
+render_point_cloud: false

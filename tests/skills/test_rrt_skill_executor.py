@@ -56,6 +56,18 @@ class LongPolicy(FakePolicy):
     action_count = 10
 
 
+class SpyObserver:
+    def __init__(self):
+        self.before = []
+        self.after = []
+
+    def before_step(self, obs, action, metadata):
+        self.before.append((obs, action, dict(metadata)))
+
+    def after_step(self, result):
+        self.after.append(dict(result))
+
+
 def make_plan(prepared=True, backend="rrt"):
     plan = SkillPlan([SkillCall("Alice", "WAIT", {}, "WAIT()")], "EXECUTE")
     if prepared:
@@ -90,6 +102,20 @@ def test_executor_success_and_artifacts(tmp_path):
     assert os.path.exists(tmp_path / "compiled_path_plans.pkl")
     assert os.path.exists(tmp_path / "rrt_plan_0.pkl")
     assert os.path.exists(tmp_path / "actions_0.pkl")
+
+
+def test_executor_observer_wraps_exact_step_boundary():
+    env = FakeEnv()
+    observer = SpyObserver()
+    executor = RRTSkillExecutor(env, {}, policy_factory=FakePolicy, transition_observer=observer)
+
+    result = executor.execute(make_plan(), "obs")
+
+    assert result.success
+    assert [entry[0] for entry in observer.before] == ["obs", "obs1"]
+    assert [entry[1] for entry in observer.before] == ["a0", "a1"]
+    assert [entry[2]["skill_step_index"] for entry in observer.before] == [0, 1]
+    assert [entry["skill_step_index"] for entry in observer.after] == [1, 2]
 
 
 def test_executor_timeout():

@@ -36,6 +36,7 @@ class RRTSkillExecutor(SkillExecutor):
         plan_splitted: bool = False,
         max_sim_steps: int = 5000,
         video_format: str = "mp4",
+        transition_observer: Optional[Any] = None,
     ) -> None:
         self.env = env
         self.robots = robots
@@ -44,6 +45,7 @@ class RRTSkillExecutor(SkillExecutor):
         self.plan_splitted = plan_splitted
         self.max_sim_steps = max_sim_steps
         self.video_format = video_format
+        self.transition_observer = transition_observer
 
     def execute(self, plan: SkillPlan, obs, artifact_dir: Optional[str] = None) -> SkillExecutionResult:
         if plan.prepared_execution is None:
@@ -123,8 +125,29 @@ class RRTSkillExecutor(SkillExecutor):
                             metadata={"plan_index": index, "plan_reasons": plan_reasons},
                         )
                     sim_action = policy.act(obs, self.env.physics)
+                    if self.transition_observer is not None:
+                        self.transition_observer.before_step(
+                            obs,
+                            sim_action,
+                            {
+                                "plan_index": index,
+                                "skill_step_index": num_sim_steps,
+                                "plan_id": plan.plan_id,
+                            },
+                        )
                     obs, reward, done, info = self.env.step(sim_action, verbose=False)
                     num_sim_steps += 1
+                    if self.transition_observer is not None:
+                        self.transition_observer.after_step(
+                            {
+                                "observation": obs,
+                                "reward": reward,
+                                "done": done,
+                                "info": info,
+                                "skill_step_index": num_sim_steps,
+                                "plan_id": plan.plan_id,
+                            }
+                        )
                     if done:
                         break
                 if done:
