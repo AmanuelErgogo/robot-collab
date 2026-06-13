@@ -431,8 +431,10 @@ End your response by either: 1) output PROCEED, if the plans require further dis
     def get_task_feedback(self, llm_plan, pose_dict): 
         feedback = ""
         for agent_name, action_str in llm_plan.action_strs.items():
+            if 'WAIT' in action_str:
+                continue
             if 'PICK' not in action_str and 'PLACE' not in action_str:
-                feedback += f"{agent_name}'s ACTION is invalid, can only PICK or PLACE"
+                feedback += f"{agent_name}'s ACTION is invalid, can only PICK, PLACE, or WAIT"
         return feedback
  
  
