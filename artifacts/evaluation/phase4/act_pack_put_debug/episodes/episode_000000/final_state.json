@@ -1,0 +1,24 @@
+{
+  "ctrl": {
+    "dtype": "float64",
+    "shape": [
+      17
+    ]
+  },
+  "ctrl_sha256": "99e5405dc284630ff5187dd5c44a547bfb502eadb74fadacbb31cc64ad8b8827",
+  "qpos": {
+    "dtype": "float64",
+    "shape": [
+      67
+    ]
+  },
+  "qpos_sha256": "037701ce7eafbebd9e7ba9366bd96c0f32a5c938960880f2620dac4ddee198c5",
+  "qvel": {
+    "dtype": "float64",
+    "shape": [
+      61
+    ]
+  },
+  "qvel_sha256": "22aa50126879df27d79ecd82efd825029989addd27ea3678a4fa5e2eace6c331",
+  "timestep": 0
+}

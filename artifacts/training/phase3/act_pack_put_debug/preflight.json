@@ -1,0 +1,294 @@
+{
+  "contract": {
+    "action_field_names": [
+      "ur5e_0_shoulder_pan_joint",
+      "ur5e_0_shoulder_lift_joint",
+      "ur5e_0_elbow_joint",
+      "ur5e_0_wrist_1_joint",
+      "ur5e_0_wrist_2_joint",
+      "ur5e_0_wrist_3_joint",
+      "ur5e_0_base_joint",
+      "robotiq_fingers_actuator"
+    ],
+    "action_representation": "absolute_joint_position_plus_gripper",
+    "camera_order": [
+      "observation.images.active_agent",
+      "observation.images.front"
+    ],
+    "dataset_schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+    "fps": 5.0,
+    "input_features": {
+      "observation.images.active_agent": {
+        "dtype": "uint8",
+        "field_names": [],
+        "name": "observation.images.active_agent",
+        "shape": [
+          96,
+          96,
+          3
+        ]
+      },
+      "observation.images.front": {
+        "dtype": "uint8",
+        "field_names": [],
+        "name": "observation.images.front",
+        "shape": [
+          96,
+          96,
+          3
+        ]
+      },
+      "observation.state": {
+        "dtype": "float32",
+        "field_names": [
+          "qpos.ur5e_0_shoulder_pan_joint",
+          "qpos.ur5e_0_shoulder_lift_joint",
+          "qpos.ur5e_0_elbow_joint",
+          "qpos.ur5e_0_wrist_1_joint",
+          "qpos.ur5e_0_wrist_2_joint",
+          "qpos.ur5e_0_wrist_3_joint",
+          "qpos.ur5e_0_base_joint",
+          "qvel.ur5e_0_shoulder_pan_joint",
+          "qvel.ur5e_0_shoulder_lift_joint",
+          "qvel.ur5e_0_elbow_joint",
+          "qvel.ur5e_0_wrist_1_joint",
+          "qvel.ur5e_0_wrist_2_joint",
+          "qvel.ur5e_0_wrist_3_joint",
+          "qvel.ur5e_0_base_joint",
+          "ctrl.robotiq_fingers_actuator"
+        ],
+        "name": "observation.state",
+        "shape": [
+          15
+        ]
+      }
+    },
+    "output_features": {
+      "action": {
+        "dtype": "float32",
+        "field_names": [
+          "ur5e_0_shoulder_pan_joint",
+          "ur5e_0_shoulder_lift_joint",
+          "ur5e_0_elbow_joint",
+          "ur5e_0_wrist_1_joint",
+          "ur5e_0_wrist_2_joint",
+          "ur5e_0_wrist_3_joint",
+          "ur5e_0_base_joint",
+          "robotiq_fingers_actuator"
+        ],
+        "high": [
+          6.283100128173828,
+          6.283100128173828,
+          2.1414999961853027,
+          6.283100128173828,
+          6.283100128173828,
+          6.283100128173828,
+          1.2999999523162842,
+          255.0
+        ],
+        "low": [
+          -6.283100128173828,
+          -6.283100128173828,
+          -3.1414999961853027,
+          -6.283100128173828,
+          -6.283100128173828,
+          -6.283100128173828,
+          -1.5,
+          0.0
+        ],
+        "name": "action",
+        "shape": [
+          8
+        ]
+      }
+    },
+    "state_field_names": [
+      "qpos.ur5e_0_shoulder_pan_joint",
+      "qpos.ur5e_0_shoulder_lift_joint",
+      "qpos.ur5e_0_elbow_joint",
+      "qpos.ur5e_0_wrist_1_joint",
+      "qpos.ur5e_0_wrist_2_joint",
+      "qpos.ur5e_0_wrist_3_joint",
+      "qpos.ur5e_0_base_joint",
+      "qvel.ur5e_0_shoulder_pan_joint",
+      "qvel.ur5e_0_shoulder_lift_joint",
+      "qvel.ur5e_0_elbow_joint",
+      "qvel.ur5e_0_wrist_1_joint",
+      "qvel.ur5e_0_wrist_2_joint",
+      "qvel.ur5e_0_wrist_3_joint",
+      "qvel.ur5e_0_base_joint",
+      "ctrl.robotiq_fingers_actuator"
+    ]
+  },
+  "dataset_root": "/home/amanu/robot-collab/artifacts/datasets/pack_put_object_debug",
+  "issues": [],
+  "lerobot_dataset_root": "/home/amanu/robot-collab/artifacts/datasets/pack_put_object_debug_lerobot",
+  "metadata": {
+    "compatibility_lock": {
+      "action_representation": "absolute_joint_position_plus_gripper",
+      "bridge_protocol": "0.1",
+      "created_utc": "2026-06-15T22:04:10Z",
+      "cuda": null,
+      "datasets": "3.6.0",
+      "gymnasium": "0.29.1",
+      "lerobot_commit": "0878c6880fa4fbadf0742751cf7b015f2d63a769",
+      "lerobot_version": "0.3.4",
+      "python": "3.10.18",
+      "pytorch": "2.7.1",
+      "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
+      "roco_dirty": true,
+      "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+      "schema_version": "1.0",
+      "transformers": "4.51.3"
+    },
+    "dataset_manifest": {
+      "action_representation": "absolute_joint_position_plus_gripper",
+      "bridge_protocol": "0.1",
+      "dataset_revision": "7e440178ae8d",
+      "episodes_attempted": 1,
+      "episodes_committed": 1,
+      "episodes_quarantined": 0,
+      "fps": 5.0,
+      "lerobot_commit": null,
+      "lerobot_version": null,
+      "provenance": {
+        "created_utc": "2026-06-15T21:55:20Z",
+        "datasets_version": null,
+        "gymnasium_version": null,
+        "lerobot_commit": null,
+        "lerobot_version": null,
+        "numpy_version": "1.22.0",
+        "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.17",
+        "python": "3.8.20",
+        "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
+        "roco_dirty": true,
+        "torch_version": null
+      },
+      "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
+      "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+      "schema_version": "1.0",
+      "skill": "PUT_OBJECT_IN_CONTAINER",
+      "split_manifest": "splits.json",
+      "task": "pack"
+    },
+    "lerobot_info": {
+      "chunks_size": 1000,
+      "codebase_version": "v2.1",
+      "data_path": "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet",
+      "features": {
+        "action": {
+          "dtype": "float32",
+          "names": [
+            "ur5e_0_shoulder_pan_joint",
+            "ur5e_0_shoulder_lift_joint",
+            "ur5e_0_elbow_joint",
+            "ur5e_0_wrist_1_joint",
+            "ur5e_0_wrist_2_joint",
+            "ur5e_0_wrist_3_joint",
+            "ur5e_0_base_joint",
+            "robotiq_fingers_actuator"
+          ],
+          "shape": [
+            8
+          ]
+        },
+        "episode_index": {
+          "dtype": "int64",
+          "names": null,
+          "shape": [
+            1
+          ]
+        },
+        "frame_index": {
+          "dtype": "int64",
+          "names": null,
+          "shape": [
+            1
+          ]
+        },
+        "index": {
+          "dtype": "int64",
+          "names": null,
+          "shape": [
+            1
+          ]
+        },
+        "observation.images.active_agent": {
+          "dtype": "image",
+          "names": [
+            "height",
+            "width",
+            "channel"
+          ],
+          "shape": [
+            96,
+            96,
+            3
+          ]
+        },
+        "observation.images.front": {
+          "dtype": "image",
+          "names": [
+            "height",
+            "width",
+            "channel"
+          ],
+          "shape": [
+            96,
+            96,
+            3
+          ]
+        },
+        "observation.state": {
+          "dtype": "float32",
+          "names": [
+            "qpos.ur5e_0_shoulder_pan_joint",
+            "qpos.ur5e_0_shoulder_lift_joint",
+            "qpos.ur5e_0_elbow_joint",
+            "qpos.ur5e_0_wrist_1_joint",
+            "qpos.ur5e_0_wrist_2_joint",
+            "qpos.ur5e_0_wrist_3_joint",
+            "qpos.ur5e_0_base_joint",
+            "qvel.ur5e_0_shoulder_pan_joint",
+            "qvel.ur5e_0_shoulder_lift_joint",
+            "qvel.ur5e_0_elbow_joint",
+            "qvel.ur5e_0_wrist_1_joint",
+            "qvel.ur5e_0_wrist_2_joint",
+            "qvel.ur5e_0_wrist_3_joint",
+            "qvel.ur5e_0_base_joint",
+            "ctrl.robotiq_fingers_actuator"
+          ],
+          "shape": [
+            15
+          ]
+        },
+        "task_index": {
+          "dtype": "int64",
+          "names": null,
+          "shape": [
+            1
+          ]
+        },
+        "timestamp": {
+          "dtype": "float32",
+          "names": null,
+          "shape": [
+            1
+          ]
+        }
+      },
+      "fps": 5.0,
+      "robot_type": "roco_pack_alice",
+      "splits": {
+        "train": "0:1"
+      },
+      "total_chunks": 1,
+      "total_episodes": 1,
+      "total_frames": 42,
+      "total_tasks": 1,
+      "total_videos": 0,
+      "video_path": null
+    }
+  },
+  "ok": true
+}

@@ -17,6 +17,33 @@ def _jsonable_features(features: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def _load_lerobot_feature_utils():
+    try:
+        from lerobot.datasets.feature_utils import (
+            build_dataset_frame,
+            dataset_to_policy_features,
+            hw_to_dataset_features,
+        )
+    except ImportError:
+        from lerobot.datasets.utils import (
+            build_dataset_frame,
+            dataset_to_policy_features,
+            hw_to_dataset_features,
+        )
+    return build_dataset_frame, dataset_to_policy_features, hw_to_dataset_features
+
+
+def _load_lerobot_constants():
+    try:
+        from lerobot.utils.constants import ACTION, OBS_STR
+
+        return ACTION, OBS_STR
+    except ImportError:
+        from lerobot.constants import ACTION
+
+        return ACTION, "observation"
+
+
 def get_lerobot_compatibility_report(env: Any) -> Dict[str, Any]:
     obs, info = env.reset(seed=0)
     state = np.asarray(obs["agent_pos"], dtype=np.float32)
@@ -43,12 +70,8 @@ def get_lerobot_compatibility_report(env: Any) -> Dict[str, Any]:
         report["blocked_reason"] = "LeRobot is not installed in this Python environment."
         return report
 
-    from lerobot.datasets.feature_utils import (
-        build_dataset_frame,
-        dataset_to_policy_features,
-        hw_to_dataset_features,
-    )
-    from lerobot.utils.constants import ACTION, OBS_STR
+    build_dataset_frame, dataset_to_policy_features, hw_to_dataset_features = _load_lerobot_feature_utils()
+    ACTION, OBS_STR = _load_lerobot_constants()
 
     state_names = list(getattr(env.spec.observation_state, "field_names", ()))
     if not state_names:

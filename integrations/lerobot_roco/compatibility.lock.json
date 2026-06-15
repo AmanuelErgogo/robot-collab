@@ -1,18 +1,17 @@
 {
   "action_representation": "absolute_joint_position_plus_gripper",
   "bridge_protocol": "0.1",
-  "created_utc": "2026-06-13T04:20:59Z",
-  "cuda": true,
-  "datasets": "4.8.5",
-  "gymnasium": "1.3.0",
-  "lerobot_commit": "pypi:lerobot==0.5.1",
-  "lerobot_version": "0.5.1",
-  "numpy": "2.2.6",
-  "python": "3.12.13",
-  "pytorch": "2.10.0",
-  "roco_commit": "8050070f5fe37ef4b6f354287be432d8278d3d47",
+  "created_utc": "2026-06-15T22:04:10Z",
+  "cuda": null,
+  "datasets": "3.6.0",
+  "gymnasium": "0.29.1",
+  "lerobot_commit": "0878c6880fa4fbadf0742751cf7b015f2d63a769",
+  "lerobot_version": "0.3.4",
+  "python": "3.10.18",
+  "pytorch": "2.7.1",
+  "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
   "roco_dirty": true,
   "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
   "schema_version": "1.0",
-  "transformers": null
+  "transformers": "4.51.3"
 }

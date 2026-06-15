@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 from real_world.real_env import RealEnv, EnvState
-import openai
+import time
 from .feedback import FeedbackManager
 from .parser import LLMResponseParser
+from llm_api import create_llm_client
  
 class DialogPrompter:
     """
@@ -19,7 +20,8 @@ class DialogPrompter:
         use_history: bool = True,  
         use_feedback: bool = True,
         temperature: float = 0,
-        llm_source: str = "gpt-4"
+        llm_source: str = "gpt-4",
+        api_key_path: Optional[str] = None,
     ):
         self.max_tokens = max_tokens
         self.use_history = use_history
@@ -36,7 +38,8 @@ class DialogPrompter:
         self.max_calls_per_round = max_calls_per_round 
         self.temperature = temperature
         self.llm_source = llm_source
-        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
+        self.llm_client = create_llm_client(llm_source, api_key_path=api_key_path)
+        self.provider_spec = self.llm_client.provider_spec
 
     def compose_system_prompt(
         self, 
@@ -183,31 +186,37 @@ Your response is:
 
     def query_once(self, system_prompt, user_prompt, max_query):
         response = None
-        usage = None   
+        usage = None
+        last_error = None
         # print('======= system prompt ======= \n ', system_prompt)
         print('======= user prompt ======= \n ', user_prompt)
 
         for n in range(max_query):
             print('querying {}th time'.format(n))
             try:
-                response = openai.ChatCompletion.create(
-                    model=self.llm_source, 
-                    messages=[
-                        # {"role": "user", "content": ""},
-                        {"role": "system", "content": system_prompt+user_prompt},                                    
-                    ],
+                messages = [{"role": "system", "content": system_prompt}]
+                if len(user_prompt.strip()) > 0:
+                    messages.append({"role": "user", "content": user_prompt})
+                llm_response = self.llm_client.generate(
+                    messages=messages,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
-                    )
-                usage = response['usage']
-                response = response['choices'][0]['message']["content"]
+                )
+                usage = llm_response.usage
+                response = llm_response.text
                 print('======= response ======= \n ', response)
                 print('======= usage ======= \n ', usage)
                 break
-            except:
-                print("API error, try again")
+            except Exception as exc:
+                last_error = exc
+                print(f"API error, try again: {exc}")
+                if n < max_query - 1:
+                    time.sleep(min(2 ** n, 4))
             continue
-        # breakpoint()
+        if response is None:
+            raise RuntimeError(
+                f"LLM query failed after {max_query} attempts for model {self.llm_source}: {last_error}"
+            )
         return response, usage
     
     def post_execute_update(self, execute_success: bool, parsed_plan: str):

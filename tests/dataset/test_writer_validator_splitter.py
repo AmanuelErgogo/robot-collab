@@ -166,3 +166,45 @@ def test_export_local_dataset_uses_public_lerobot_flow(tmp_path, monkeypatch):
     assert calls[0][0] == "create"
     assert any(call[0] == "add_frame" for call in calls)
     assert calls[-1] == ("finalize",)
+
+
+def test_export_local_dataset_supports_legacy_lerobot_add_frame(tmp_path, monkeypatch):
+    schema = default_schema_for_tests()
+    local_root = tmp_path / "local"
+    writer = AtomicEpisodeWriter(str(local_root), schema)
+    writer.write_episode(make_record(schema))
+    calls = []
+
+    class FakeDataset:
+        @classmethod
+        def create(cls, **kwargs):
+            calls.append(("create", kwargs))
+            return cls()
+
+        def add_frame(self, frame, task, timestamp=None):
+            calls.append(("add_frame", sorted(frame.keys()), task, timestamp))
+            extra = set(frame) & {"timestamp", "frame_index", "episode_index", "task_index"}
+            if extra:
+                raise ValueError("Extra features: %s" % extra)
+
+        def save_episode(self):
+            calls.append(("save_episode",))
+
+        def finalize(self):
+            calls.append(("finalize",))
+
+    monkeypatch.setattr(writer_module, "_import_lerobot_dataset", lambda: FakeDataset)
+
+    export_local_dataset_to_lerobot(
+        str(local_root),
+        str(tmp_path / "lerobot"),
+        repo_id="local/test",
+        robot_type="fake_robot",
+        use_videos=False,
+    )
+
+    add_frame_calls = [call for call in calls if call[0] == "add_frame"]
+    assert add_frame_calls
+    assert all("timestamp" not in call[1] for call in add_frame_calls[1:])
+    assert any(call[3] is not None for call in add_frame_calls[1:])
+    assert calls[-1] == ("finalize",)

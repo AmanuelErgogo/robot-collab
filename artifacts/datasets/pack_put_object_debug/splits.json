@@ -1,0 +1,22 @@
+{
+  "ratios": {
+    "test": 0.15,
+    "train": 0.7,
+    "validation": 0.15
+  },
+  "seed": 42,
+  "splits": {
+    "test": [],
+    "train": [
+      "episode_000000"
+    ],
+    "validation": []
+  },
+  "variation_ids": {
+    "test": [],
+    "train": [
+      "var_4d3bdc75282580c4"
+    ],
+    "validation": []
+  }
+}
