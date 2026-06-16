@@ -125,7 +125,10 @@ pip install -e ".[visualization]"
 ```
 
 ### Acquire OpenAI or Gemini credentials
-OpenAI models still use `OPENAI_API_KEY` or `./openai_key.json`.
+See [`docs/llm_setup_and_credentials.md`](docs/llm_setup_and_credentials.md)
+for the exact lookup order and runner-specific behavior. In short, the legacy
+`run_dialog.py` path still reads `./openai_key.json`, while newer paths that
+call `llm_api.py` can use OpenAI environment variables or Gemini/Vertex ADC.
 
 Gemini models now use Vertex AI with Application Default Credentials (ADC). For a local service account JSON flow:
 
@@ -148,21 +151,23 @@ export GOOGLE_CLOUD_LOCATION="global"
 export GOOGLE_GENAI_PYTHON_BIN="$PWD/.venv-google-genai/bin/python"
 ```
 
-You can also pass `--api_key_path /path/to/service-account.json` to the runners; for Gemini models this sets `GOOGLE_APPLICATION_CREDENTIALS` for the current process.
+You can also pass `--api_key_path /path/to/service-account.json` to runners
+that call `llm_api.py`; for Gemini models this sets
+`GOOGLE_APPLICATION_CREDENTIALS` for the current process.
 
-### Run the same task with Gemini Flash-Lite
+### Run MetaWorld with Gemini Flash-Lite
 ```
 $ conda activate roco
 (roco) $ export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.secrets/bloom-gemini-sa.json"
 (roco) $ export GOOGLE_CLOUD_PROJECT="bloom-475216"
 (roco) $ export GOOGLE_CLOUD_LOCATION="global"
 (roco) $ export GOOGLE_GENAI_PYTHON_BIN="$PWD/.venv-google-genai/bin/python"
-(roco) $ python run_dialog.py --task pack -llm gemini-2.5-flash-lite
+(roco) $ python run_metaworld_dialog.py --task pick-place-v3 --control_mode llm --llm_source gemini-2.5-flash-lite
 ```
 
 ### Or point at a specific service account JSON file
 ```
-$ python run_dialog.py --task pack -llm gemini-2.5-flash-lite --api_key_path ~/.secrets/bloom-gemini-sa.json
+$ python run_metaworld_dialog.py --task pick-place-v3 --control_mode llm --llm_source gemini-2.5-flash-lite --api_key_path ~/.secrets/bloom-gemini-sa.json
 ```
 
 ### Standalone Flash-Lite smoke test
