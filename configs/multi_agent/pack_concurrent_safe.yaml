@@ -1,0 +1,50 @@
+task: pack
+phase: 7
+mode: concurrent_safe_smoke
+
+agents:
+  order:
+    - Alice
+    - Bob
+
+scheduler:
+  enable_concurrency: true
+  max_concurrent_agents: 2
+  reject_conflicts: true
+  require_disjoint_exclusive_resources: true
+  require_disjoint_workspace_zones: true
+  default_on_uncertainty: sequential
+
+feature_gate:
+  name: learned_multi_agent_concurrency
+  default_enabled: false
+  allowed_in_production: false
+  purpose: central joint-step smoke tests and controlled demos only
+
+compatibility_matrix:
+  version: phase7.pack.v1
+  permissive_rules:
+    - id: phase7.pack.put.disjoint
+      skills:
+        - PUT_OBJECT_IN_CONTAINER
+        - PUT_OBJECT_IN_CONTAINER
+      requirements:
+        - distinct objects
+        - distinct targets
+        - no unknown workspace zones
+        - no overlapping workspace zones
+
+safety:
+  stop_all_on:
+    - NONFINITE_ACTION
+    - POLICY_LATENCY_EXCEEDED
+    - ACTION_MERGE_FAILED
+    - FORBIDDEN_CONTACT
+    - RESERVATION_VIOLATION
+    - OBJECT_OWNERSHIP_CONFLICT
+  handoff_enabled: false
+
+execution:
+  independent_env_step_allowed: false
+  central_joint_stepper_required: true
+  fallback_to_sequential_on_stop_all: true

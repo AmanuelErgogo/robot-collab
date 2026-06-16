@@ -1,0 +1,60 @@
+{
+  "action_high": [
+    6.283100128173828,
+    6.283100128173828,
+    2.1414999961853027,
+    6.283100128173828,
+    6.283100128173828,
+    6.283100128173828,
+    1.2999999523162842,
+    255.0
+  ],
+  "action_low": [
+    -6.283100128173828,
+    -6.283100128173828,
+    -3.1414999961853027,
+    -6.283100128173828,
+    -6.283100128173828,
+    -6.283100128173828,
+    -1.5,
+    0.0
+  ],
+  "chunk_size": 20,
+  "config": {
+    "action_bound_tolerance": 1e-05,
+    "active_agent": "Alice",
+    "checkpoint_dir": "artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model",
+    "collision_limit": null,
+    "compatibility_lock": "integrations/lerobot_roco/compatibility.lock.json",
+    "dataset_repo_id": "local/roco-pack-put-object-debug",
+    "dataset_revision": null,
+    "dataset_root": "artifacts/datasets/pack_put_object_debug",
+    "device": null,
+    "endpoint": "tcp://127.0.0.1:5557",
+    "episode_ids": [],
+    "execution_horizon": 5,
+    "frozen_suite": false,
+    "lerobot_dataset_root": "artifacts/datasets/pack_put_object_debug_lerobot",
+    "max_steps": 80,
+    "name": "act_pack_put_debug",
+    "no_progress_action_epsilon": 0.0001,
+    "no_progress_patience": 3,
+    "no_progress_state_epsilon": 0.0001,
+    "no_progress_window": 20,
+    "notes": [],
+    "output_root": "artifacts/evaluation/phase4",
+    "overwrite": true,
+    "record_video": true,
+    "render_every_steps": 1,
+    "request_timeout_ms": 30000,
+    "require_lerobot": true,
+    "seeds": [
+      1000
+    ],
+    "split": "debug",
+    "task_instruction": null
+  },
+  "episode_index": 0,
+  "execution_horizon": 5,
+  "seed": 1000
+}

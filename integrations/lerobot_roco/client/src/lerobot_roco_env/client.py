@@ -54,8 +54,9 @@ class RemoteRoCoClient:
             zmq = None
         request = make_request(command, payload or {})
         socket = self._ensure_socket()
+        packed_request = pack_message(request, max_payload_bytes=self.max_payload_bytes)
         try:
-            socket.send(pack_message(request, max_payload_bytes=self.max_payload_bytes))
+            socket.send(packed_request)
             data = socket.recv()
         except Exception as exc:
             if zmq is not None and isinstance(exc, zmq.Again):

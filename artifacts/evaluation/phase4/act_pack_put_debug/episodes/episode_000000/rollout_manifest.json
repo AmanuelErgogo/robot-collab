@@ -1,0 +1,318 @@
+{
+  "fallback_connected": false,
+  "mode": "direct_policy_rollout",
+  "phase": 4,
+  "planner_connected": false,
+  "policy_metadata": {
+    "checkpoint_dir": "/home/amanu/robot-collab/artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model",
+    "checkpoint_inspection": {
+      "checkpoint_dir": "/home/amanu/robot-collab/artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model",
+      "files_present": {
+        "config.json": true,
+        "model.safetensors": true,
+        "train_config.json": true
+      },
+      "issues": [],
+      "metadata": {
+        "policy_config": {
+          "chunk_size": 20,
+          "device": "cpu",
+          "dim_feedforward": 3200,
+          "dim_model": 512,
+          "dropout": 0.1,
+          "feedforward_activation": "relu",
+          "input_features": {
+            "observation.images.active_agent": {
+              "shape": [
+                3,
+                96,
+                96
+              ],
+              "type": "VISUAL"
+            },
+            "observation.images.front": {
+              "shape": [
+                3,
+                96,
+                96
+              ],
+              "type": "VISUAL"
+            },
+            "observation.state": {
+              "shape": [
+                15
+              ],
+              "type": "STATE"
+            }
+          },
+          "kl_weight": 10.0,
+          "latent_dim": 32,
+          "license": null,
+          "n_action_steps": 20,
+          "n_decoder_layers": 1,
+          "n_encoder_layers": 4,
+          "n_heads": 8,
+          "n_obs_steps": 1,
+          "n_vae_encoder_layers": 4,
+          "normalization_mapping": {
+            "ACTION": "MEAN_STD",
+            "STATE": "MEAN_STD",
+            "VISUAL": "MEAN_STD"
+          },
+          "optimizer_lr": 1e-05,
+          "optimizer_lr_backbone": 1e-05,
+          "optimizer_weight_decay": 0.0001,
+          "output_features": {
+            "action": {
+              "shape": [
+                8
+              ],
+              "type": "ACTION"
+            }
+          },
+          "pre_norm": false,
+          "pretrained_backbone_weights": "ResNet18_Weights.IMAGENET1K_V1",
+          "private": null,
+          "push_to_hub": false,
+          "replace_final_stride_with_dilation": false,
+          "repo_id": null,
+          "tags": null,
+          "temporal_ensemble_coeff": null,
+          "type": "act",
+          "use_amp": false,
+          "use_vae": true,
+          "vision_backbone": "resnet18"
+        },
+        "train_config": {
+          "batch_size": 2,
+          "dataset": {
+            "episodes": null,
+            "image_transforms": {
+              "enable": false,
+              "max_num_transforms": 3,
+              "random_order": false,
+              "tfs": {
+                "brightness": {
+                  "kwargs": {
+                    "brightness": [
+                      0.8,
+                      1.2
+                    ]
+                  },
+                  "type": "ColorJitter",
+                  "weight": 1.0
+                },
+                "contrast": {
+                  "kwargs": {
+                    "contrast": [
+                      0.8,
+                      1.2
+                    ]
+                  },
+                  "type": "ColorJitter",
+                  "weight": 1.0
+                },
+                "hue": {
+                  "kwargs": {
+                    "hue": [
+                      -0.05,
+                      0.05
+                    ]
+                  },
+                  "type": "ColorJitter",
+                  "weight": 1.0
+                },
+                "saturation": {
+                  "kwargs": {
+                    "saturation": [
+                      0.5,
+                      1.5
+                    ]
+                  },
+                  "type": "ColorJitter",
+                  "weight": 1.0
+                },
+                "sharpness": {
+                  "kwargs": {
+                    "sharpness": [
+                      0.5,
+                      1.5
+                    ]
+                  },
+                  "type": "SharpnessJitter",
+                  "weight": 1.0
+                }
+              }
+            },
+            "repo_id": "local/roco-pack-put-object-debug",
+            "revision": null,
+            "root": "artifacts/datasets/pack_put_object_debug_lerobot",
+            "use_imagenet_stats": false,
+            "video_backend": "torchcodec"
+          },
+          "env": null,
+          "eval": {
+            "batch_size": 50,
+            "n_episodes": 50,
+            "use_async_envs": false
+          },
+          "eval_freq": 0,
+          "job_name": "act",
+          "log_freq": 10,
+          "num_workers": 0,
+          "optimizer": {
+            "betas": [
+              0.9,
+              0.999
+            ],
+            "eps": 1e-08,
+            "grad_clip_norm": 10.0,
+            "lr": 1e-05,
+            "type": "adamw",
+            "weight_decay": 0.0001
+          },
+          "output_dir": "/home/amanu/robot-collab/artifacts/training/phase3/act_pack_put_debug/lerobot_output",
+          "policy": {
+            "chunk_size": 20,
+            "device": "cpu",
+            "dim_feedforward": 3200,
+            "dim_model": 512,
+            "dropout": 0.1,
+            "feedforward_activation": "relu",
+            "input_features": {
+              "observation.images.active_agent": {
+                "shape": [
+                  3,
+                  96,
+                  96
+                ],
+                "type": "VISUAL"
+              },
+              "observation.images.front": {
+                "shape": [
+                  3,
+                  96,
+                  96
+                ],
+                "type": "VISUAL"
+              },
+              "observation.state": {
+                "shape": [
+                  15
+                ],
+                "type": "STATE"
+              }
+            },
+            "kl_weight": 10.0,
+            "latent_dim": 32,
+            "license": null,
+            "n_action_steps": 20,
+            "n_decoder_layers": 1,
+            "n_encoder_layers": 4,
+            "n_heads": 8,
+            "n_obs_steps": 1,
+            "n_vae_encoder_layers": 4,
+            "normalization_mapping": {
+              "ACTION": "MEAN_STD",
+              "STATE": "MEAN_STD",
+              "VISUAL": "MEAN_STD"
+            },
+            "optimizer_lr": 1e-05,
+            "optimizer_lr_backbone": 1e-05,
+            "optimizer_weight_decay": 0.0001,
+            "output_features": {
+              "action": {
+                "shape": [
+                  8
+                ],
+                "type": "ACTION"
+              }
+            },
+            "pre_norm": false,
+            "pretrained_backbone_weights": "ResNet18_Weights.IMAGENET1K_V1",
+            "private": null,
+            "push_to_hub": false,
+            "replace_final_stride_with_dilation": false,
+            "repo_id": null,
+            "tags": null,
+            "temporal_ensemble_coeff": null,
+            "type": "act",
+            "use_amp": false,
+            "use_vae": true,
+            "vision_backbone": "resnet18"
+          },
+          "resume": false,
+          "save_checkpoint": true,
+          "save_freq": 25,
+          "scheduler": null,
+          "seed": 1000,
+          "steps": 50,
+          "use_policy_training_preset": true,
+          "wandb": {
+            "disable_artifact": false,
+            "enable": false,
+            "entity": null,
+            "mode": null,
+            "notes": null,
+            "project": "lerobot",
+            "run_id": null
+          }
+        }
+      },
+      "ok": true,
+      "pretrained_model_dir": "/home/amanu/robot-collab/artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model"
+    },
+    "chunk_size": 20,
+    "input_features": {
+      "observation.images.active_agent": {
+        "shape": [
+          3,
+          96,
+          96
+        ],
+        "type": "VISUAL"
+      },
+      "observation.images.front": {
+        "shape": [
+          3,
+          96,
+          96
+        ],
+        "type": "VISUAL"
+      },
+      "observation.state": {
+        "shape": [
+          15
+        ],
+        "type": "STATE"
+      }
+    },
+    "lerobot_version": "0.3.4",
+    "n_action_steps": 20,
+    "normalization_mapping": {
+      "ACTION": "NormalizationMode.MEAN_STD",
+      "STATE": "NormalizationMode.MEAN_STD",
+      "VISUAL": "NormalizationMode.MEAN_STD"
+    },
+    "output_features": {
+      "action": {
+        "shape": [
+          8
+        ],
+        "type": "ACTION"
+      }
+    },
+    "policy_type": "act",
+    "postprocessor_contract": "policy_postprocessor unnormalizes action to native simulator units before env.step",
+    "pretrained_model_dir": "/home/amanu/robot-collab/artifacts/training/phase3/act_pack_put_debug/lerobot_output/checkpoints/000050/pretrained_model",
+    "processor_files": {
+      "config.json": "7c7f103580a6aea6d00da1c3eb92bdd809002638c03855a34488113137c3c8ce",
+      "model.safetensors": "7c9462ef5a5a81aa25e1fac090ed6a0bdc425bc98804db8cdc08587983affc67",
+      "policy_postprocessor.json": null,
+      "policy_preprocessor.json": null
+    },
+    "processor_mode": "legacy",
+    "temporal_ensemble_coeff": null
+  },
+  "success_source": "info['is_success'] task predicate"
+}

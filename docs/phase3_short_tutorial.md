@@ -19,7 +19,10 @@ Quick check:
 ```bash
 python - <<'PY'
 import torch
-from lerobot.datasets import LeRobotDataset
+try:
+    from lerobot.datasets import LeRobotDataset
+except ImportError:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 print("torch:", torch.__version__)
 print("cuda_available:", torch.cuda.is_available())
@@ -122,4 +125,3 @@ sed -n '1,220p' artifacts/training/phase3/act_pack_put_debug/phase3_report.md
 For this debug run, treat successful training and finite checkpoint reload as
 pipeline evidence only. Do not report this as manipulation success; closed-loop
 simulator rollout belongs to Phase 4.
-

@@ -1,5 +1,6 @@
 """Atomic episode storage and LeRobot export boundary."""
 
+import inspect
 import json
 import os
 import shutil
@@ -317,20 +318,40 @@ def _import_lerobot_dataset() -> Any:
 def _add_lerobot_frame(dataset: Any, frame: Mapping[str, Any], task: Optional[str]) -> None:
     """Add one frame across LeRobot versions with different task APIs."""
     payload = dict(frame)
+    timestamp = payload.get("timestamp")
     try:
         dataset.add_frame(payload, task=task)
         return
     except TypeError:
         pass
+    except ValueError as exc:
+        if "Extra features" not in str(exc):
+            raise
     if task is not None and "task" not in payload:
         payload["task"] = task
     try:
         dataset.add_frame(payload)
         return
+    except TypeError:
+        pass
     except ValueError as exc:
         if "Extra features" not in str(exc):
             raise
-    trimmed = {key: value for key, value in payload.items() if key not in LEROBOT_MANAGED_FRAME_KEYS}
+    trimmed = {key: value for key, value in frame.items() if key not in LEROBOT_MANAGED_FRAME_KEYS}
+    try:
+        params = inspect.signature(dataset.add_frame).parameters
+    except (TypeError, ValueError):
+        params = {}
+    kwargs = {}
+    if task is not None and "task" in params:
+        kwargs["task"] = task
+    if timestamp is not None and "timestamp" in params:
+        kwargs["timestamp"] = timestamp
+    try:
+        dataset.add_frame(trimmed, **kwargs)
+        return
+    except TypeError:
+        pass
     dataset.add_frame(trimmed)
 
 

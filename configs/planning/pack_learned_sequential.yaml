@@ -1,0 +1,55 @@
+task: pack
+mode: sequential
+active_skill: PUT_OBJECT_IN_CONTAINER
+
+routing:
+  default_backend: rrt
+  default_fallback: unsupported
+  routes:
+    - agent: Alice
+      skill: PUT_OBJECT_IN_CONTAINER
+      primary: learned
+      fallback: rrt
+      policy_id: act_pack_put_alice
+    - agent: Bob
+      skill: PUT_OBJECT_IN_CONTAINER
+      primary: rrt
+      fallback: unsupported
+
+replanning:
+  max_plan_rounds: 4
+  max_retries_per_skill: 1
+  max_learned_failures: 3
+  max_repeated_failures: 2
+  max_fallbacks: 1
+  allow_same_plan_retry: true
+  fallback_rules:
+    POLICY_INFERENCE_FAILURE: USE_RRT_FALLBACK
+    BRIDGE_FAILURE: USE_RRT_FALLBACK
+    ACTION_OUT_OF_BOUNDS: USE_RRT_FALLBACK
+    NONFINITE_ACTION: USE_RRT_FALLBACK
+    NO_PROGRESS: USE_RRT_FALLBACK
+    TIMEOUT: USE_RRT_FALLBACK
+    MISSED_GRASP: RETRY_LEARNED
+    SLIPPAGE: REPLAN_FROM_CURRENT_STATE
+    TARGET_OCCUPIED: REPLAN_FROM_CURRENT_STATE
+    OBJECT_LOST: ROLLBACK_AND_REPLAN
+  rollback_rules:
+    POLICY_INFERENCE_FAILURE: true
+    BRIDGE_FAILURE: true
+    ACTION_OUT_OF_BOUNDS: true
+    NONFINITE_ACTION: true
+    NO_PROGRESS: true
+    TIMEOUT: true
+    OBJECT_LOST: true
+    MISSED_GRASP: false
+    SLIPPAGE: false
+    TARGET_OCCUPIED: false
+
+prompt:
+  expose_policy_ids: false
+  expose_checkpoint_paths: false
+  prohibit_low_level_outputs: true
+
+metrics:
+  separate_learned_fallback_rrt_overall: true

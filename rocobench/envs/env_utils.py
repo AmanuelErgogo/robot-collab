@@ -7,12 +7,26 @@ from pydantic import dataclasses, validator
 from transforms3d import affines, quaternions, euler
 from typing import Dict, List, Optional, Sequence, Tuple
 import matplotlib.pyplot as plt 
-import open3d as o3d
 from matplotlib.patches import Patch
 from PIL import Image 
 import seaborn as sns
+
+try:
+    import open3d as o3d
+except ImportError:
+    o3d = None
+
 Pixel = Tuple[int, int]
 Point3D = Tuple[float, float, float]
+
+
+def _require_open3d(feature: str):
+    if o3d is None:
+        raise ImportError(
+            "open3d is required for {}. Install it with `pip install open3d` "
+            "or `pip install .[visualization]`.".format(feature)
+        )
+    return o3d
 
 class AllowArbitraryTypes:
     # TODO look into numpy.typing.NDArray
@@ -141,8 +155,9 @@ def visualize_voxel_scene(
     expand_path = False,
     ):
     """ Displays the scene and path points as voxels """
+    o3d_module = _require_open3d("voxel scene visualization")
     pcd = obs_pcd.to_open3d()
-    voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
+    voxel_grid = o3d_module.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
     new_voxels = []
     new_colors = []
     if len(path_colors) == 0:
@@ -171,14 +186,14 @@ def visualize_voxel_scene(
                     new_colors.append(color)
 
     # o3d.visualization.draw_geometries([voxel_grid])
-    visualizer = o3d.visualization.Visualizer()
+    visualizer = o3d_module.visualization.Visualizer()
     visualizer.create_window() 
     visualizer.add_geometry(voxel_grid)
     if len(new_voxels) > 0:
-        pcd_new = o3d.geometry.PointCloud()
-        pcd_new.points = o3d.utility.Vector3dVector(new_voxels)
-        pcd_new.colors = o3d.utility.Vector3dVector(new_colors)
-        new_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd_new, voxel_size=voxel_grid.voxel_size)
+        pcd_new = o3d_module.geometry.PointCloud()
+        pcd_new.points = o3d_module.utility.Vector3dVector(new_voxels)
+        pcd_new.colors = o3d_module.utility.Vector3dVector(new_colors)
+        new_grid = o3d_module.geometry.VoxelGrid.create_from_point_cloud(pcd_new, voxel_size=voxel_grid.voxel_size)
         visualizer.add_geometry(new_grid)
 
     visualizer.poll_events()
@@ -194,7 +209,10 @@ def visualize_voxel_scene(
     color = np.asarray(color) 
     # save the captured frame as a .jpg image
     if save_img:
-        o3d.io.write_image(img_path, o3d.geometry.Image((color * 255).astype('uint8')))
+        o3d_module.io.write_image(
+            img_path,
+            o3d_module.geometry.Image((color * 255).astype('uint8')),
+        )
 
     # visualizer.capture_screen_image('test.jpg')
     visualizer.destroy_window() 
@@ -263,9 +281,10 @@ class PointCloud:
         )
 
     def to_open3d(self, color_palette: str = 'colorblind') -> o3d.geometry.PointCloud:
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(self.xyz_pts)
-        pcd.colors = o3d.utility.Vector3dVector(self.rgb_pts.astype(float)/255.0)
+        o3d_module = _require_open3d("point cloud conversion")
+        pcd = o3d_module.geometry.PointCloud()
+        pcd.points = o3d_module.utility.Vector3dVector(self.xyz_pts)
+        pcd.colors = o3d_module.utility.Vector3dVector(self.rgb_pts.astype(float)/255.0)
         return pcd
 
     def voxel_downsample(
@@ -282,9 +301,10 @@ class PointCloud:
 
     @property
     def normals(self) -> np.ndarray:
+        o3d_module = _require_open3d("point cloud normal estimation")
         pcd = self.to_open3d()
         pcd.estimate_normals(
-            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.04, max_nn=30)
+            search_param=o3d_module.geometry.KDTreeSearchParamHybrid(radius=0.04, max_nn=30)
         )
         return np.asarray(pcd.normals)
 

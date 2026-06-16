@@ -1,0 +1,30 @@
+{
+  "action_representation": "absolute_joint_position_plus_gripper",
+  "bridge_protocol": "0.1",
+  "dataset_revision": "7e440178ae8d",
+  "episodes_attempted": 1,
+  "episodes_committed": 1,
+  "episodes_quarantined": 0,
+  "fps": 5.0,
+  "lerobot_commit": null,
+  "lerobot_version": null,
+  "provenance": {
+    "created_utc": "2026-06-15T21:55:20Z",
+    "datasets_version": null,
+    "gymnasium_version": null,
+    "lerobot_commit": null,
+    "lerobot_version": null,
+    "numpy_version": "1.22.0",
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.17",
+    "python": "3.8.20",
+    "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
+    "roco_dirty": true,
+    "torch_version": null
+  },
+  "roco_commit": "780c955a5853816425ece0cec23c9fc1283ab0fe",
+  "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+  "schema_version": "1.0",
+  "skill": "PUT_OBJECT_IN_CONTAINER",
+  "split_manifest": "splits.json",
+  "task": "pack"
+}

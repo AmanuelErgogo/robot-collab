@@ -1,0 +1,35 @@
+{
+  "action_bound_violations": 17,
+  "artifact_dir": "/home/amanu/robot-collab/artifacts/evaluation/phase4/act_pack_put_debug/episodes/episode_000000",
+  "final_info": {
+    "action_validation": {
+      "above_high": 0,
+      "below_low": 17,
+      "finite": true,
+      "max_value": 3.0616378784179688,
+      "min_value": -6.078086853027344,
+      "shape_ok": true,
+      "violation_count": 17
+    },
+    "done": false,
+    "hold_action": {
+      "dtype": "float32",
+      "shape": [
+        8
+      ]
+    },
+    "is_success": false,
+    "reward": 0.0,
+    "seed": 1000
+  },
+  "inference_latency_ms": [
+    16.676400999131147
+  ],
+  "no_progress_events": 0,
+  "num_env_steps": 0,
+  "sim_time": 0.0,
+  "success": false,
+  "terminated": true,
+  "termination_reason": "ACTION_OUT_OF_BOUNDS",
+  "truncated": false
+}

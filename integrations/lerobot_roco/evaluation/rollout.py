@@ -24,6 +24,18 @@ UNSAFE_STATE = "UNSAFE_STATE"
 MANUAL_INTERRUPT = "MANUAL_INTERRUPT"
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return {"shape": list(value.shape), "dtype": str(value.dtype)}
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, Mapping):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
 @dataclass
 class PolicyRolloutResult:
     success: bool
@@ -49,7 +61,7 @@ class PolicyRolloutResult:
             "inference_latency_ms": [float(x) for x in self.inference_latency_ms],
             "action_bound_violations": int(self.action_bound_violations),
             "no_progress_events": int(self.no_progress_events),
-            "final_info": dict(self.final_info),
+            "final_info": _json_safe(dict(self.final_info)),
             "artifact_dir": self.artifact_dir,
         }
 
@@ -345,4 +357,3 @@ def run_policy_rollout(
     )
     artifact_writer.finalize(result.to_dict(), final_state_digest=final_digest, fps=fps)
     return result
-

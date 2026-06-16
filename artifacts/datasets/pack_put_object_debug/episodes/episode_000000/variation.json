@@ -1,0 +1,30 @@
+{
+  "agent_name": "Alice",
+  "distractor_arrangement": {
+    "object_order": [
+      "apple"
+    ]
+  },
+  "metadata": {
+    "master_seed": 42
+  },
+  "object_name": "apple",
+  "object_poses": {
+    "apple": {
+      "position": [
+        -1.00107,
+        0.627579,
+        0.199784
+      ],
+      "quaternion": [
+        0.9972817955782773,
+        -1.0699697806787742e-07,
+        -6.798168606518896e-06,
+        0.07368188489676848
+      ]
+    }
+  },
+  "seed": 2840744289,
+  "target_name": "bin_front_left",
+  "variation_index": 0
+}

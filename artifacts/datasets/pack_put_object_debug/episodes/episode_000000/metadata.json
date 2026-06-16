@@ -1,0 +1,56 @@
+{
+  "agent_name": "Alice",
+  "canonical_skill_call": "NAME Alice ACTION PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)\nNAME Bob ACTION WAIT()",
+  "episode_id": "episode_000000",
+  "episode_index": 0,
+  "executor_success": true,
+  "expert_backend": "rrt",
+  "expert_motion_target_name": "bin_front_right",
+  "expert_motion_target_overridden": true,
+  "expert_plan_id": "6b494b7d92d5",
+  "expert_requested_target_name": "bin_front_left",
+  "frame_count": 42,
+  "natural_language_instruction": "Alice put the apple into bin_front_left.",
+  "object_name": "apple",
+  "postcondition_success": true,
+  "result": "{'success': True, 'status': 'success', 'reason': '', 'num_sim_steps': 42, 'reward': 0, 'done': False, 'info': {}, 'metadata': {'plan_reasons': ['RRT succeeded: ReasonDirect_time0.973017692565918_iter1', 'RRT succeeded: ReasonSuccess_time10.915990829467773_iter2_smoothed']}}",
+  "robot_name": "ur5e_robotiq",
+  "schema_hash": "7e440178ae8debeb396a14bbd98531382da78fd01dffa3d41b84ba6f61903d2a",
+  "seed": 2840744289,
+  "skill_id": "PUT_OBJECT_IN_CONTAINER",
+  "success": true,
+  "target_name": "bin_front_left",
+  "task_id": "pack",
+  "termination_reason": "success",
+  "variation": {
+    "agent_name": "Alice",
+    "distractor_arrangement": {
+      "object_order": [
+        "apple"
+      ]
+    },
+    "metadata": {
+      "master_seed": 42
+    },
+    "object_name": "apple",
+    "object_poses": {
+      "apple": {
+        "position": [
+          -1.00107,
+          0.627579,
+          0.199784
+        ],
+        "quaternion": [
+          0.9972817955782773,
+          -1.0699697806787742e-07,
+          -6.798168606518896e-06,
+          0.07368188489676848
+        ]
+      }
+    },
+    "seed": 2840744289,
+    "target_name": "bin_front_left",
+    "variation_index": 0
+  },
+  "variation_id": "var_4d3bdc75282580c4"
+}

@@ -2,7 +2,6 @@ import os
 import logging 
 import argparse
 import numpy as np
-import openai 
 import json
 from real_world.kinect import KinectClient
 from real_world.realur5 import UR5RTDE
@@ -12,10 +11,6 @@ from real_world.prompts import LLMResponseParser, FeedbackManager, DialogPrompte
 # print out logging.info
 logging.basicConfig(level=logging.INFO)
 logging.root.setLevel(logging.INFO)
-
-key_path="../openai_key.json"  # TODO: change this to your own key 
-OPENAI_KEY = json.load(open(key_path))
-openai.api_key = OPENAI_KEY 
 
 WS_CROP_X = (180, -120)
 WS_CROP_Y = (300, -380)
@@ -37,7 +32,8 @@ class LLMRunner:
         use_history: bool = False,
         use_feedback: bool = False,
         temperature: float = 0.0,
-        llm_source: str = "gpt4",
+        llm_source: str = "gpt-4",
+        api_key_path: str = None,
         ): 
         self.env = env
         self.verbose = verbose
@@ -78,6 +74,7 @@ class LLMRunner:
                 num_replans=self.llm_num_replans,
                 temperature=self.temperature,
                 llm_source=llm_source,
+                api_key_path=api_key_path,
             )   
         else:
             raise NotImplementedError
@@ -159,6 +156,7 @@ def main(args):
         use_feedback=(not args.no_feedback),
         temperature=args.temperature,
         llm_source=args.llm_source,
+        api_key_path=args.api_key_path,
     )
     # runner.run(args)
     runner.one_run(run_id=0)
@@ -180,6 +178,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_history", "-nh", action="store_true")
     parser.add_argument("--no_feedback", "-nf", action="store_true")
     parser.add_argument("--llm_source", "-llm", type=str, default="gpt-4")
+    parser.add_argument("--api_key_path", "-k", type=str, default=None)
     parser.add_argument("--use_robot", "-robot", action="store_true")
     logging.basicConfig(level=logging.INFO)
 

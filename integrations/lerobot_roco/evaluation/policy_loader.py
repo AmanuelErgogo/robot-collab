@@ -99,6 +99,66 @@ def _features_to_dict(features: Optional[Mapping[str, Any]]) -> Dict[str, Dict[s
     return {str(key): _feature_to_dict(value) for key, value in sorted((features or {}).items())}
 
 
+class _LegacyPolicyPreprocessor:
+    """Fallback preprocessor for LeRobot versions with in-policy normalization."""
+
+    def __init__(self, device: Optional[str] = None) -> None:
+        self.device = str(device) if device else None
+
+    def reset(self) -> None:
+        return None
+
+    def __call__(self, policy_inputs: Mapping[str, Any]) -> Dict[str, Any]:
+        try:
+            import torch
+        except Exception:
+            torch = None
+
+        batch: Dict[str, Any] = {}
+        for key, value in policy_inputs.items():
+            if isinstance(value, str):
+                batch[key] = [value]
+                continue
+            if torch is not None:
+                tensor = value if isinstance(value, torch.Tensor) else torch.as_tensor(value)
+                if tensor.ndim in (0, 1, 3):
+                    tensor = tensor.unsqueeze(0)
+                if self.device:
+                    tensor = tensor.to(self.device)
+                batch[key] = tensor
+                continue
+            array = np.asarray(value)
+            if array.ndim in (0, 1, 3):
+                array = np.expand_dims(array, axis=0)
+            batch[key] = array
+        return batch
+
+
+class _IdentityPostprocessor:
+    def reset(self) -> None:
+        return None
+
+    def __call__(self, raw_chunk: Any) -> Any:
+        return raw_chunk
+
+
+def _build_policy_processors(
+    policy_cfg: Any,
+    model_dir: str,
+    dataset_stats: Any,
+    factory_module: Any,
+) -> Tuple[Any, Any, str]:
+    make_pre_post_processors = getattr(factory_module, "make_pre_post_processors", None)
+    if callable(make_pre_post_processors):
+        preprocessor, postprocessor = make_pre_post_processors(
+            policy_cfg,
+            pretrained_path=model_dir,
+            dataset_stats=dataset_stats,
+        )
+        return preprocessor, postprocessor, "factory"
+    return _LegacyPolicyPreprocessor(device=getattr(policy_cfg, "device", None)), _IdentityPostprocessor(), "legacy"
+
+
 def validate_native_action_chunk(
     chunk: Any,
     action_low: Sequence[float],
@@ -228,9 +288,13 @@ def load_lerobot_policy(config: Any) -> LoadedPolicy:
         import importlib.metadata
         from lerobot.configs.policies import PreTrainedConfig
         from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
-        from lerobot.policies.factory import make_policy, make_pre_post_processors
+        from lerobot.policies import factory as policy_factory
     except Exception as exc:
         raise PolicyLoadError("LeRobot is required in the Phase 4 client runtime: {}".format(exc)) from exc
+
+    make_policy = getattr(policy_factory, "make_policy", None)
+    if not callable(make_policy):
+        raise PolicyLoadError("LeRobot policy factory does not expose make_policy")
 
     try:
         policy_cfg = PreTrainedConfig.from_pretrained(model_dir, local_files_only=True)
@@ -242,10 +306,11 @@ def load_lerobot_policy(config: Any) -> LoadedPolicy:
             revision=config.dataset_revision,
         )
         policy = make_policy(policy_cfg, ds_meta=ds_meta)
-        preprocessor, postprocessor = make_pre_post_processors(
+        preprocessor, postprocessor, processor_mode = _build_policy_processors(
             policy_cfg,
-            pretrained_path=model_dir,
+            model_dir=model_dir,
             dataset_stats=getattr(ds_meta, "stats", None),
+            factory_module=policy_factory,
         )
     except Exception as exc:
         raise PolicyLoadError("failed to load LeRobot policy/processors: {}".format(exc)) from exc
@@ -271,6 +336,7 @@ def load_lerobot_policy(config: Any) -> LoadedPolicy:
         },
         "checkpoint_inspection": inspection.to_dict(),
         "postprocessor_contract": "policy_postprocessor unnormalizes action to native simulator units before env.step",
+        "processor_mode": processor_mode,
     }
     if metadata["policy_type"] != "act":
         raise PolicyLoadError("Phase 4 direct rollout supports ACT only, got {}".format(metadata["policy_type"]))

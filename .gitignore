@@ -127,11 +127,14 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv-google-genai/
+.venv-metaworld/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.secrets/
 
 # Spyder project settings
 .spyderproject

@@ -166,7 +166,14 @@ python -m pip install "PyYAML==6.0.1"
 Quick import checks:
 
 ```bash
-python -c "from lerobot.datasets import LeRobotDataset; print('LeRobotDataset OK')"
+python - <<'PY'
+try:
+    from lerobot.datasets import LeRobotDataset
+except ImportError:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+print("LeRobotDataset OK", LeRobotDataset)
+PY
 python -c "from integrations.lerobot_roco.dataset.writer import export_local_dataset_to_lerobot; print('export OK')"
 ```
 
@@ -328,7 +335,10 @@ Then load through the public LeRobotDataset API:
 
 ```bash
 python - <<'PY'
-from lerobot.datasets import LeRobotDataset
+try:
+    from lerobot.datasets import LeRobotDataset
+except ImportError:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 dataset = LeRobotDataset(
     repo_id="local/roco-pack-put-object-debug",
@@ -418,7 +428,10 @@ python scripts/replay_roco_dataset_episode.py \
 conda activate lerobot-roco
 python - <<'PY'
 from integrations.lerobot_roco.dataset.writer import export_local_dataset_to_lerobot
-from lerobot.datasets import LeRobotDataset
+try:
+    from lerobot.datasets import LeRobotDataset
+except ImportError:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 export_local_dataset_to_lerobot(
     dataset_root="artifacts/datasets/pack_put_object_debug",
@@ -536,7 +549,14 @@ If LeRobot export fails, confirm you are in the Python 3.12+ environment and
 that `lerobot` imports successfully:
 
 ```bash
-python -c "from lerobot.datasets import LeRobotDataset; print('ok')"
+python - <<'PY'
+try:
+    from lerobot.datasets import LeRobotDataset
+except ImportError:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+print("ok", LeRobotDataset)
+PY
 ```
 
 ## 16. Gate Checklist

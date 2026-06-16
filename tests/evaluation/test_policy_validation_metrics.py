@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from integrations.lerobot_roco.evaluation.metrics import aggregate_rollout_results, wilson_interval
-from integrations.lerobot_roco.evaluation.policy_loader import validate_native_action_chunk
+from integrations.lerobot_roco.evaluation.rollout import PolicyRolloutResult
+from integrations.lerobot_roco.evaluation.policy_loader import _LegacyPolicyPreprocessor, validate_native_action_chunk
 
 
 @dataclass
@@ -60,3 +61,38 @@ def test_wilson_and_aggregate_metrics():
     assert metrics.latency_ms["p50"] == 3.0
     assert metrics.action_bound_violations == 1
 
+
+def test_legacy_policy_preprocessor_adds_batch_dimension():
+    preprocessor = _LegacyPolicyPreprocessor(device=None)
+    batch = preprocessor(
+        {
+            "observation.state": np.asarray([1.0, 2.0], dtype=np.float32),
+            "observation.images.front": np.zeros((3, 4, 5), dtype=np.float32),
+            "task": "pack the apple",
+        }
+    )
+
+    assert tuple(batch["observation.state"].shape) == (1, 2)
+    assert tuple(batch["observation.images.front"].shape) == (1, 3, 4, 5)
+    assert batch["task"] == ["pack the apple"]
+
+
+def test_policy_rollout_result_serializes_numpy_final_info():
+    result = PolicyRolloutResult(
+        success=False,
+        terminated=True,
+        truncated=False,
+        termination_reason="ACTION_OUT_OF_BOUNDS",
+        num_env_steps=0,
+        sim_time=0.0,
+        inference_latency_ms=(1.0,),
+        action_bound_violations=1,
+        no_progress_events=0,
+        final_info={"hold_action": np.zeros((2,), dtype=np.float32), "seed": np.int64(1)},
+        artifact_dir="/tmp/example",
+    )
+
+    payload = result.to_dict()
+
+    assert payload["final_info"]["hold_action"] == {"shape": [2], "dtype": "float32"}
+    assert payload["final_info"]["seed"] == 1

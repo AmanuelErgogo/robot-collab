@@ -88,7 +88,7 @@ def test_gym_env_reset_step_render_close():
     assert client.closed_episode is True
 
 
-def test_lerobot_compatibility_report_uses_installed_feature_utils():
+def test_lerobot_compatibility_report_uses_available_lerobot_feature_utils():
     pytest.importorskip("gymnasium")
     pytest.importorskip("lerobot")
     from lerobot_roco_env.env import RoCoGymEnv

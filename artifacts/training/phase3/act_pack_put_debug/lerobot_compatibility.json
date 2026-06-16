@@ -1,0 +1,12 @@
+{
+  "cuda_available": true,
+  "errors": [],
+  "executable": "/home/amanu/miniconda3/envs/lerobot/bin/python",
+  "lerobot_commit": "0878c6880fa4fbadf0742751cf7b015f2d63a769",
+  "lerobot_train": "/home/amanu/miniconda3/envs/lerobot/bin/lerobot-train",
+  "lerobot_version": "0.3.4",
+  "ok": true,
+  "python": "3.10.18",
+  "torch_version": "2.7.1",
+  "warnings": []
+}
