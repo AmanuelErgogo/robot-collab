@@ -1,0 +1,25 @@
+{
+  "central_joint_stepper_required": true,
+  "central_status": "SUCCEEDED",
+  "central_steps": 3,
+  "demo": "phase7_real_hold",
+  "independent_env_step_allowed": false,
+  "learned_multi_agent_policy": false,
+  "provider_stats": {
+    "Alice": {
+      "calls": 3,
+      "resets": 1
+    },
+    "Bob": {
+      "calls": 3,
+      "resets": 1
+    }
+  },
+  "qpos_delta_norm": 0.06661572300234857,
+  "real_simulator": true,
+  "rule_id": "phase7.pack.put.disjoint",
+  "schedule_mode": "concurrent",
+  "stop_all_events": 0,
+  "success": true,
+  "ticks_requested": 3
+}

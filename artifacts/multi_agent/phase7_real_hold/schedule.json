@@ -1,0 +1,69 @@
+{
+  "conflicts": [],
+  "fallback_to_sequential": false,
+  "mode": "concurrent",
+  "ordered_groups": [
+    {
+      "calls": [
+        {
+          "agent_name": "Alice",
+          "arguments": {
+            "container": "bin_front_left",
+            "object": "apple"
+          },
+          "raw_action": "PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)",
+          "skill_name": "PUT_OBJECT_IN_CONTAINER"
+        },
+        {
+          "agent_name": "Bob",
+          "arguments": {
+            "container": "bin_front_right",
+            "object": "banana"
+          },
+          "raw_action": "PUT_OBJECT_IN_CONTAINER(object=banana, container=bin_front_right)",
+          "skill_name": "PUT_OBJECT_IN_CONTAINER"
+        }
+      ],
+      "index": 0,
+      "mode": "concurrent"
+    }
+  ],
+  "reason": "Distinct resources and disjoint workspace zones.",
+  "resource_claims": {
+    "Alice": {
+      "agent_name": "Alice",
+      "exclusive": [
+        "robot:Alice",
+        "object:apple",
+        "target:bin_front_left"
+      ],
+      "shared": [],
+      "skill_name": "PUT_OBJECT_IN_CONTAINER",
+      "workspace_trajectory_hint": {
+        "reason": "PUT_OBJECT_IN_CONTAINER corridor from agent/object to target.",
+        "zones": [
+          "bin_left",
+          "left"
+        ]
+      }
+    },
+    "Bob": {
+      "agent_name": "Bob",
+      "exclusive": [
+        "robot:Bob",
+        "object:banana",
+        "target:bin_front_right"
+      ],
+      "shared": [],
+      "skill_name": "PUT_OBJECT_IN_CONTAINER",
+      "workspace_trajectory_hint": {
+        "reason": "PUT_OBJECT_IN_CONTAINER corridor from agent/object to target.",
+        "zones": [
+          "bin_right",
+          "right"
+        ]
+      }
+    }
+  },
+  "rule_id": "phase7.pack.put.disjoint"
+}

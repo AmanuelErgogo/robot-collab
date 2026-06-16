@@ -1,0 +1,43 @@
+task: pack
+phase: 7
+mode: sequential
+
+agents:
+  order:
+    - Alice
+    - Bob
+
+scheduler:
+  enable_concurrency: false
+  max_concurrent_agents: 1
+  reject_conflicts: true
+  default_on_uncertainty: sequential
+
+resources:
+  exclusive:
+    - robot
+    - object
+    - target
+  workspace_zones:
+    - left
+    - right
+    - center
+    - bin_left
+    - bin_right
+    - handoff
+    - unknown
+
+safety:
+  stop_all_on:
+    - NONFINITE_ACTION
+    - POLICY_LATENCY_EXCEEDED
+    - ACTION_MERGE_FAILED
+    - FORBIDDEN_CONTACT
+    - RESERVATION_VIOLATION
+    - OBJECT_OWNERSHIP_CONFLICT
+  handoff_enabled: false
+
+execution:
+  learned_multi_agent_concurrency_enabled: false
+  independent_env_step_allowed: false
+  central_joint_stepper_required: true
