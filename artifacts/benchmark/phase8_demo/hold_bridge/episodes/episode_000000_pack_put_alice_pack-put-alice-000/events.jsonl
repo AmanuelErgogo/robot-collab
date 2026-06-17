@@ -1,0 +1,5 @@
+{"event": "RESET", "info": {"done": false, "hold_action": [-1.5707999467849731, -1.5648270845413208, 1.5767014026641846, -1.5700194835662842, -1.5707998275756836, -2.297334988909938e-09, -7.940253254901108e-08, 0.0], "is_success": false, "reward": 0.0, "seed": 2840744289}, "seed": 2840744289}
+{"env_step": 1, "event": "STEP", "is_success": false, "reward": 0.0}
+{"env_step": 2, "event": "STEP", "is_success": false, "reward": 0.0}
+{"env_step": 3, "event": "STEP", "is_success": false, "reward": 0.0}
+{"env_step": 4, "event": "STEP", "is_success": false, "reward": 0.0}

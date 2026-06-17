@@ -1,0 +1,55 @@
+{
+  "benchmark_id": "RoCoBench-Pack-Skills-v1",
+  "benchmark_version": "1.0.0",
+  "schema_version": "1.0",
+  "protocol_version": "phase8.benchmark.v1",
+  "predicate_version": "pack.predicate.v1",
+  "tasks": [
+    {
+      "task_id": "pack.put.alice",
+      "description": "Alice places the assigned object into the assigned bin slot.",
+      "active_agents": ["Alice"],
+      "max_steps": 80,
+      "success_predicate": "pack_object_in_slot:v1",
+      "failure_predicates": ["max_steps", "action_violation", "unsafe_state", "object_lost"],
+      "action_representation": "absolute_joint_position_plus_gripper",
+      "required_cameras": ["front", "active_agent"],
+      "variation_group": "pack_put_alice_v1"
+    },
+    {
+      "task_id": "pack.put.bob",
+      "description": "Bob places the assigned object into the assigned bin slot.",
+      "active_agents": ["Bob"],
+      "max_steps": 80,
+      "success_predicate": "pack_object_in_slot:v1",
+      "failure_predicates": ["max_steps", "action_violation", "unsafe_state", "object_lost"],
+      "action_representation": "absolute_joint_position_plus_gripper",
+      "required_cameras": ["front", "active_agent"],
+      "variation_group": "pack_put_bob_v1"
+    },
+    {
+      "task_id": "pack.sequential.two_agent",
+      "description": "Alice and Bob execute two typed packing skills sequentially on disjoint objects and slots.",
+      "active_agents": ["Alice", "Bob"],
+      "max_steps": 160,
+      "success_predicate": "all_assigned_objects_in_slots:v1",
+      "failure_predicates": ["max_steps", "invalid_plan", "action_violation", "unsafe_state", "object_lost"],
+      "action_representation": "typed_skill_plan",
+      "required_cameras": ["front", "active_agent"],
+      "variation_group": "pack_sequential_two_agent_v1"
+    },
+    {
+      "task_id": "pack.concurrent.safe_two_agent",
+      "description": "Alice and Bob execute disjoint packing skills through the Phase 7 centralized concurrent executor.",
+      "active_agents": ["Alice", "Bob"],
+      "max_steps": 120,
+      "success_predicate": "all_assigned_objects_in_slots:v1",
+      "failure_predicates": ["max_steps", "resource_violation", "workspace_violation", "central_stop", "unsafe_state"],
+      "action_representation": "typed_skill_plan_concurrent",
+      "required_cameras": ["front", "active_agent"],
+      "variation_group": "pack_concurrent_safe_v1",
+      "requires_phase": 7
+    }
+  ]
+}
+

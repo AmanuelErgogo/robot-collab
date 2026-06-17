@@ -1,0 +1,135 @@
+{
+  "benchmark_id": "RoCoBench-Pack-Skills-v1",
+  "benchmark_version": "1.0.0",
+  "schema_version": "1.0",
+  "protocol_version": "phase8.benchmark.v1",
+  "predicate_version": "pack.predicate.v1",
+  "variations": [
+    {
+      "variation_id": "pack-put-alice-000",
+      "variation_group": "pack_put_alice_v1",
+      "seed": 2840744289,
+      "active_agents": ["Alice"],
+      "object_assignments": {"Alice": "apple"},
+      "target_slots": {"Alice": "bin_front_left"},
+      "distractors": ["banana", "milk", "soda_can", "bread", "cereal"],
+      "pose_set": "phase2_debug_home_layout_var_4d3bdc75282580c4",
+      "concurrency_case": "single_agent",
+      "randomize_init": false,
+      "object_poses": {
+        "apple": {
+          "position": [-1.00107, 0.627579, 0.199784],
+          "quaternion": [0.9972817955782773, -1.0699697806787742e-07, -6.798168606518896e-06, 0.07368188489676848]
+        }
+      },
+      "expert_motion_target_overrides": {"bin_front_left": "bin_front_right"},
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "apple", "container": "bin_front_left"}
+      ]
+    },
+    {
+      "variation_id": "pack-put-alice-001",
+      "variation_group": "pack_put_alice_v1",
+      "seed": 8101,
+      "active_agents": ["Alice"],
+      "object_assignments": {"Alice": "milk"},
+      "target_slots": {"Alice": "bin_back_left"},
+      "distractors": ["apple", "banana", "soda_can", "bread", "cereal"],
+      "pose_set": "pack_fixed_grid_seed_8101",
+      "concurrency_case": "single_agent",
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "milk", "container": "bin_back_left"}
+      ]
+    },
+    {
+      "variation_id": "pack-put-bob-000",
+      "variation_group": "pack_put_bob_v1",
+      "seed": 8200,
+      "active_agents": ["Bob"],
+      "object_assignments": {"Bob": "banana"},
+      "target_slots": {"Bob": "bin_front_right"},
+      "distractors": ["apple", "milk", "soda_can", "bread", "cereal"],
+      "pose_set": "pack_fixed_grid_seed_8200",
+      "concurrency_case": "single_agent",
+      "expected_skill_plan": [
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "banana", "container": "bin_front_right"}
+      ]
+    },
+    {
+      "variation_id": "pack-put-bob-001",
+      "variation_group": "pack_put_bob_v1",
+      "seed": 8201,
+      "active_agents": ["Bob"],
+      "object_assignments": {"Bob": "cereal"},
+      "target_slots": {"Bob": "bin_back_right"},
+      "distractors": ["apple", "banana", "milk", "soda_can", "bread"],
+      "pose_set": "pack_fixed_grid_seed_8201",
+      "concurrency_case": "single_agent",
+      "expected_skill_plan": [
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "cereal", "container": "bin_back_right"}
+      ]
+    },
+    {
+      "variation_id": "pack-seq-000",
+      "variation_group": "pack_sequential_two_agent_v1",
+      "seed": 8300,
+      "active_agents": ["Alice", "Bob"],
+      "object_assignments": {"Alice": "apple", "Bob": "banana"},
+      "target_slots": {"Alice": "bin_front_left", "Bob": "bin_front_right"},
+      "distractors": ["milk", "soda_can", "bread", "cereal"],
+      "pose_set": "pack_fixed_grid_seed_8300",
+      "concurrency_case": "sequential_disjoint",
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "apple", "container": "bin_front_left"},
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "banana", "container": "bin_front_right"}
+      ]
+    },
+    {
+      "variation_id": "pack-seq-001",
+      "variation_group": "pack_sequential_two_agent_v1",
+      "seed": 8301,
+      "active_agents": ["Alice", "Bob"],
+      "object_assignments": {"Alice": "milk", "Bob": "cereal"},
+      "target_slots": {"Alice": "bin_back_left", "Bob": "bin_back_right"},
+      "distractors": ["apple", "banana", "soda_can", "bread"],
+      "pose_set": "pack_fixed_grid_seed_8301",
+      "concurrency_case": "sequential_disjoint",
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "milk", "container": "bin_back_left"},
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "cereal", "container": "bin_back_right"}
+      ]
+    },
+    {
+      "variation_id": "pack-concurrent-safe-000",
+      "variation_group": "pack_concurrent_safe_v1",
+      "seed": 8400,
+      "active_agents": ["Alice", "Bob"],
+      "object_assignments": {"Alice": "apple", "Bob": "banana"},
+      "target_slots": {"Alice": "bin_front_left", "Bob": "bin_front_right"},
+      "distractors": ["milk", "soda_can", "bread", "cereal"],
+      "pose_set": "pack_fixed_grid_seed_8400",
+      "concurrency_case": "phase7_disjoint_left_right",
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "apple", "container": "bin_front_left"},
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "banana", "container": "bin_front_right"}
+      ],
+      "requires_phase7_artifact": "artifacts/multi_agent/phase7_real_hold/summary.json"
+    },
+    {
+      "variation_id": "pack-concurrent-safe-001",
+      "variation_group": "pack_concurrent_safe_v1",
+      "seed": 8401,
+      "active_agents": ["Alice", "Bob"],
+      "object_assignments": {"Alice": "bread", "Bob": "cereal"},
+      "target_slots": {"Alice": "bin_back_left", "Bob": "bin_back_right"},
+      "distractors": ["apple", "banana", "milk", "soda_can"],
+      "pose_set": "pack_fixed_grid_seed_8401",
+      "concurrency_case": "phase7_disjoint_left_right",
+      "expected_skill_plan": [
+        {"agent_name": "Alice", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "bread", "container": "bin_back_left"},
+        {"agent_name": "Bob", "skill_name": "PUT_OBJECT_IN_CONTAINER", "object": "cereal", "container": "bin_back_right"}
+      ],
+      "requires_phase7_artifact": "artifacts/multi_agent/phase7_real_hold/summary.json"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "benchmark_id": "RoCoBench-Pack-Skills-v1",
+  "benchmark_version": "1.0.0",
+  "blocked": [],
+  "checks": [
+    {
+      "message": "1.0.0",
+      "name": "package_import",
+      "status": "pass"
+    },
+    {
+      "message": "65d7885df012fc372195803b945853d706308e720ff87b2eeb164934f138f6d9",
+      "name": "manifests_load_and_hash",
+      "status": "pass"
+    },
+    {
+      "message": "4 tasks, 8 variations",
+      "name": "task_variation_coverage",
+      "status": "pass"
+    },
+    {
+      "message": "episode CSV fields=37",
+      "name": "result_schema",
+      "status": "pass"
+    },
+    {
+      "message": "processor maps raw keys only",
+      "name": "processor_contract",
+      "status": "pass"
+    },
+    {
+      "message": "hold baseline schema smoke passed",
+      "name": "baseline_schema_smoke",
+      "status": "pass"
+    },
+    {
+      "message": "7 files",
+      "name": "docs_cards_license",
+      "status": "pass"
+    },
+    {
+      "message": "LeRobot 0.3.4 0878c6880fa4fbadf0742751cf7b015f2d63a769",
+      "name": "provenance_lock",
+      "status": "pass"
+    },
+    {
+      "message": "phase8 files scanned",
+      "name": "no_phase8_secrets_or_private_paths",
+      "status": "pass"
+    },
+    {
+      "message": "live bridge reset/step/render passed",
+      "name": "bridge_reset_step_render",
+      "status": "pass"
+    }
+  ],
+  "failed": [],
+  "status": "pass"
+}

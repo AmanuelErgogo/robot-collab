@@ -1,0 +1,38 @@
+name: rocobench-integration
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tier1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
+      - name: Validate benchmark release
+        run: python scripts/validate_rocobench_release.py
+      - name: Run Phase 8 unit tests
+        run: pytest tests/benchmark -q
+
+  tier2-bridge-smoke:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Document manual bridge tier
+        run: |
+          echo "Tier 2 requires a live Python 3.8 RoCo bridge server and MuJoCo runtime."
+          echo "Run: python scripts/validate_rocobench_release.py --run-bridge-smoke --require-bridge"

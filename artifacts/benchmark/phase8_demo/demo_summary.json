@@ -1,0 +1,327 @@
+{
+  "commands": [
+    {
+      "command": [
+        "/home/amanu/miniconda3/bin/python",
+        "scripts/validate_rocobench_release.py",
+        "--output",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation.json"
+      ],
+      "elapsed_s": 0.19193158899997798,
+      "exit_code": 0,
+      "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/release_validation_tier1.log",
+      "name": "release_validation_tier1"
+    },
+    {
+      "command": [
+        "conda",
+        "run",
+        "-n",
+        "lerobot-roco",
+        "python",
+        "scripts/validate_rocobench_release.py",
+        "--run-bridge-smoke",
+        "--require-bridge",
+        "--output",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation_live_bridge.json"
+      ],
+      "elapsed_s": 12.709181596000235,
+      "exit_code": 0,
+      "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/release_validation_live_bridge.log",
+      "name": "release_validation_live_bridge"
+    },
+    {
+      "command": [
+        "conda",
+        "run",
+        "-n",
+        "lerobot-roco",
+        "python",
+        "scripts/evaluate_rocobench.py",
+        "--track",
+        "skill_policy",
+        "--method",
+        "hold",
+        "--task-id",
+        "pack.put.alice",
+        "--episodes-per-task",
+        "1",
+        "--output",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/hold_bridge",
+        "--endpoint",
+        "tcp://127.0.0.1:5557",
+        "--overwrite"
+      ],
+      "elapsed_s": 6.059475787999872,
+      "exit_code": 0,
+      "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/hold_bridge_benchmark.log",
+      "name": "hold_bridge_benchmark"
+    },
+    {
+      "command": [
+        "conda",
+        "run",
+        "-n",
+        "roco",
+        "python",
+        "scripts/evaluate_rocobench.py",
+        "--track",
+        "skill_policy",
+        "--method",
+        "rrt",
+        "--task-id",
+        "pack.put.alice",
+        "--episodes-per-task",
+        "1",
+        "--output",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt",
+        "--overwrite"
+      ],
+      "elapsed_s": 61.762649424999836,
+      "exit_code": 0,
+      "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/rrt_benchmark.log",
+      "name": "rrt_benchmark"
+    },
+    {
+      "command": [
+        "/home/amanu/miniconda3/bin/python",
+        "scripts/compare_rocobench_runs.py",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/hold_bridge",
+        "--output",
+        "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt_vs_hold_compare.json"
+      ],
+      "elapsed_s": 0.17479259599986108,
+      "exit_code": 0,
+      "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/paired_comparison.log",
+      "name": "paired_comparison"
+    }
+  ],
+  "comparison": {
+    "a_success_rate": 1.0,
+    "b_success_rate": 0.0,
+    "mcnemar": {
+      "b01": 0,
+      "b10": 1,
+      "discordant": 1,
+      "p_value": 1.0
+    },
+    "paired_keys": [
+      "pack.put.alice::pack-put-alice-000"
+    ],
+    "paired_n": 1,
+    "risk_difference_bootstrap": {
+      "ci_high": 1.0,
+      "ci_low": 1.0,
+      "mean_difference": 1.0
+    }
+  },
+  "episodes_per_task": 1,
+  "hold": {
+    "metrics": {
+      "action_violations": 0,
+      "collisions": 0,
+      "drops": 0,
+      "episode_count": 1,
+      "fallback_successes": 0,
+      "latency_ms": {
+        "p50": 0.0,
+        "p95": 0.0
+      },
+      "learned_successes": 0,
+      "mean_sim_time_s": 0.8,
+      "mean_steps": 4.0,
+      "multi_agent": {
+        "central_stops": 0,
+        "mean_makespan_steps": 0.0,
+        "mean_parallel_speedup": 0.0,
+        "resource_violations": 0
+      },
+      "planner": {
+        "fallback_attempts": 0,
+        "replans": 0,
+        "valid_plans": 0
+      },
+      "success_rate": 0.0,
+      "success_wilson_95": {
+        "high": 0.7934506856227626,
+        "low": 0.0
+      },
+      "successes": 0,
+      "termination_distribution": {
+        "MAX_STEPS": 1
+      }
+    },
+    "run_dir": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/hold_bridge"
+  },
+  "live_bridge_validation": {
+    "path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation_live_bridge.json",
+    "result": {
+      "benchmark_id": "RoCoBench-Pack-Skills-v1",
+      "benchmark_version": "1.0.0",
+      "blocked": [],
+      "checks": [
+        {
+          "message": "1.0.0",
+          "name": "package_import",
+          "status": "pass"
+        },
+        {
+          "message": "65d7885df012fc372195803b945853d706308e720ff87b2eeb164934f138f6d9",
+          "name": "manifests_load_and_hash",
+          "status": "pass"
+        },
+        {
+          "message": "4 tasks, 8 variations",
+          "name": "task_variation_coverage",
+          "status": "pass"
+        },
+        {
+          "message": "episode CSV fields=37",
+          "name": "result_schema",
+          "status": "pass"
+        },
+        {
+          "message": "processor maps raw keys only",
+          "name": "processor_contract",
+          "status": "pass"
+        },
+        {
+          "message": "hold baseline schema smoke passed",
+          "name": "baseline_schema_smoke",
+          "status": "pass"
+        },
+        {
+          "message": "7 files",
+          "name": "docs_cards_license",
+          "status": "pass"
+        },
+        {
+          "message": "LeRobot 0.3.4 0878c6880fa4fbadf0742751cf7b015f2d63a769",
+          "name": "provenance_lock",
+          "status": "pass"
+        },
+        {
+          "message": "phase8 files scanned",
+          "name": "no_phase8_secrets_or_private_paths",
+          "status": "pass"
+        },
+        {
+          "message": "live bridge reset/step/render passed",
+          "name": "bridge_reset_step_render",
+          "status": "pass"
+        }
+      ],
+      "failed": [],
+      "status": "pass"
+    }
+  },
+  "output_root": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo",
+  "rrt": {
+    "metrics": {
+      "action_violations": 0,
+      "collisions": 0,
+      "drops": 0,
+      "episode_count": 1,
+      "fallback_successes": 0,
+      "latency_ms": {
+        "p50": 0.0,
+        "p95": 0.0
+      },
+      "learned_successes": 0,
+      "mean_sim_time_s": 0.84,
+      "mean_steps": 42.0,
+      "multi_agent": {
+        "central_stops": 0,
+        "mean_makespan_steps": 0.0,
+        "mean_parallel_speedup": 0.0,
+        "resource_violations": 0
+      },
+      "planner": {
+        "fallback_attempts": 0,
+        "replans": 0,
+        "valid_plans": 1
+      },
+      "success_rate": 1.0,
+      "success_wilson_95": {
+        "high": 1.0,
+        "low": 0.20654931437723745
+      },
+      "successes": 1,
+      "termination_distribution": {
+        "SUCCESS": 1
+      }
+    },
+    "run_dir": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt"
+  },
+  "task_id": "pack.put.alice",
+  "tier1_validation": {
+    "path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation.json",
+    "result": {
+      "benchmark_id": "RoCoBench-Pack-Skills-v1",
+      "benchmark_version": "1.0.0",
+      "blocked": [
+        {
+          "message": "not run; pass --run-bridge-smoke to require a live Phase 0 server",
+          "name": "bridge_reset_step_render",
+          "status": "blocked"
+        }
+      ],
+      "checks": [
+        {
+          "message": "1.0.0",
+          "name": "package_import",
+          "status": "pass"
+        },
+        {
+          "message": "65d7885df012fc372195803b945853d706308e720ff87b2eeb164934f138f6d9",
+          "name": "manifests_load_and_hash",
+          "status": "pass"
+        },
+        {
+          "message": "4 tasks, 8 variations",
+          "name": "task_variation_coverage",
+          "status": "pass"
+        },
+        {
+          "message": "episode CSV fields=37",
+          "name": "result_schema",
+          "status": "pass"
+        },
+        {
+          "message": "processor maps raw keys only",
+          "name": "processor_contract",
+          "status": "pass"
+        },
+        {
+          "message": "hold baseline schema smoke passed",
+          "name": "baseline_schema_smoke",
+          "status": "pass"
+        },
+        {
+          "message": "7 files",
+          "name": "docs_cards_license",
+          "status": "pass"
+        },
+        {
+          "message": "LeRobot 0.3.4 0878c6880fa4fbadf0742751cf7b015f2d63a769",
+          "name": "provenance_lock",
+          "status": "pass"
+        },
+        {
+          "message": "phase8 files scanned",
+          "name": "no_phase8_secrets_or_private_paths",
+          "status": "pass"
+        },
+        {
+          "message": "not run; pass --run-bridge-smoke to require a live Phase 0 server",
+          "name": "bridge_reset_step_render",
+          "status": "blocked"
+        }
+      ],
+      "failed": [],
+      "status": "pass"
+    }
+  },
+  "variation_manifest_hash": "65d7885df012fc372195803b945853d706308e720ff87b2eeb164934f138f6d9"
+}

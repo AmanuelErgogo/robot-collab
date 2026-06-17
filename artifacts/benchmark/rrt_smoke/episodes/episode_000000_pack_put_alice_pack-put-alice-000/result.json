@@ -1,0 +1,35 @@
+{
+  "artifact_dir": "/home/amanu/robot-collab/artifacts/benchmark/rrt_smoke/episodes/episode_000000_pack_put_alice_pack-put-alice-000",
+  "extra": {
+    "execution_response": "EXECUTE\nNAME Alice ACTION PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_right)\nNAME Bob ACTION WAIT()",
+    "expert_motion_target_overrides": {
+      "bin_front_left": "bin_front_right"
+    },
+    "postcondition_met": true,
+    "response": "EXECUTE\nNAME Alice ACTION PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)\nNAME Bob ACTION WAIT()",
+    "skill_result": {
+      "done": false,
+      "info": {},
+      "metadata": {
+        "plan_reasons": [
+          "RRT succeeded: ReasonDirect_time1.6056036949157715_iter1",
+          "RRT succeeded: ReasonSuccess_time18.784618854522705_iter2_smoothed"
+        ]
+      },
+      "num_sim_steps": 42,
+      "reason": "",
+      "reward": 0,
+      "status": "success",
+      "success": true
+    }
+  },
+  "fallback_success": false,
+  "learned_success": false,
+  "num_env_steps": 42,
+  "overall_success": true,
+  "plan_valid": true,
+  "sim_time_s": 0.84,
+  "success": true,
+  "termination_reason": "SUCCESS",
+  "wall_time_s": 48.58022602500023
+}

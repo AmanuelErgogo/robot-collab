@@ -1,0 +1,22 @@
+{
+  "artifact_dir": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/hold_bridge/episodes/episode_000000_pack_put_alice_pack-put-alice-000",
+  "collisions": 0,
+  "drops": 0,
+  "extra": {
+    "baseline": "hold",
+    "final_info": {
+      "action_clipped": false,
+      "done": false,
+      "is_success": false,
+      "reward": 0.0
+    }
+  },
+  "fallback_success": false,
+  "learned_success": false,
+  "num_env_steps": 4,
+  "overall_success": false,
+  "sim_time_s": 0.8,
+  "success": false,
+  "termination_reason": "MAX_STEPS",
+  "wall_time_s": 3.1719861319998017
+}

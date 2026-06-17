@@ -79,6 +79,8 @@ pipeline, use these runbooks:
 - Phase 3 ACT training: [docs/phase3_short_tutorial.md](docs/phase3_short_tutorial.md)
 - Phase 4 direct ACT rollout through the bridge: [docs/phase4_direct_inference.md](docs/phase4_direct_inference.md)
 - Phase 5 learned executor and deployment boundary: [docs/phase5_short_tutorial.md](docs/phase5_short_tutorial.md)
+- Phase 8 benchmark release and validation: [docs/phase8_benchmark_release.md](docs/phase8_benchmark_release.md)
+- Phase 8 full benchmark demo: [docs/phase8_demo_tutorial.md](docs/phase8_demo_tutorial.md)
 
 ### Verified debug path
 The following phase commands were re-run during this verification pass:

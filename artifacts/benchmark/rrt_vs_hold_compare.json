@@ -1,0 +1,19 @@
+{
+  "a_success_rate": 1.0,
+  "b_success_rate": 0.0,
+  "mcnemar": {
+    "b01": 0,
+    "b10": 1,
+    "discordant": 1,
+    "p_value": 1.0
+  },
+  "paired_keys": [
+    "pack.put.alice::pack-put-alice-000"
+  ],
+  "paired_n": 1,
+  "risk_difference_bootstrap": {
+    "ci_high": 1.0,
+    "ci_low": 1.0,
+    "mean_difference": 1.0
+  }
+}

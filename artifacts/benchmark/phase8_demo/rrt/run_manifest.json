@@ -1,0 +1,75 @@
+{
+  "action_representation": "absolute_joint_position_plus_gripper",
+  "benchmark_id": "RoCoBench-Pack-Skills-v1",
+  "benchmark_version": "1.0.0",
+  "bridge_protocol": "0.1",
+  "compatibility_lock": "integrations/lerobot_roco/compatibility.lock.json",
+  "config": {
+    "action_bound_tolerance": 1e-05,
+    "endpoint": "tcp://127.0.0.1:5557",
+    "episodes_per_task": 1,
+    "execution_horizon": null,
+    "method": "rrt",
+    "notes": [],
+    "output_dir": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt",
+    "overwrite": true,
+    "policy_path": null,
+    "record_video": false,
+    "render_every_steps": 1,
+    "request_timeout_ms": 30000,
+    "require_bridge": true,
+    "require_lerobot": true,
+    "resolved_task_ids": [
+      "pack.put.alice"
+    ],
+    "suite": "rocobench_pack_skills_v1",
+    "task_ids": [
+      "pack.put.alice"
+    ],
+    "track": "skill_policy"
+  },
+  "episodes": [
+    {
+      "seed": 2840744289,
+      "task_id": "pack.put.alice",
+      "variation_hash": "bcc8899955f319cf982170531b2af352334566dbdf844b0c0a211825ebef228f",
+      "variation_id": "pack-put-alice-000"
+    }
+  ],
+  "lerobot_commit": "0878c6880fa4fbadf0742751cf7b015f2d63a769",
+  "lerobot_version": "0.3.4",
+  "method": "rrt",
+  "predicate_version": "pack.predicate.v1",
+  "protocol_version": "phase8.benchmark.v1",
+  "roco_commit": "7fa484e1397c530c9941fcc1cc94f970ee25f93f",
+  "roco_dirty": true,
+  "schema_version": "1.0",
+  "suite": "rocobench_pack_skills_v1",
+  "task_manifest": "benchmark/manifests/pack_v1_tasks.json",
+  "tasks": [
+    {
+      "action_representation": "absolute_joint_position_plus_gripper",
+      "active_agents": [
+        "Alice"
+      ],
+      "description": "Alice places the assigned object into the assigned bin slot.",
+      "failure_predicates": [
+        "max_steps",
+        "action_violation",
+        "unsafe_state",
+        "object_lost"
+      ],
+      "max_steps": 80,
+      "required_cameras": [
+        "front",
+        "active_agent"
+      ],
+      "success_predicate": "pack_object_in_slot:v1",
+      "task_id": "pack.put.alice",
+      "variation_group": "pack_put_alice_v1"
+    }
+  ],
+  "track": "skill_policy",
+  "variation_manifest": "benchmark/manifests/pack_v1_variations.json",
+  "variation_manifest_hash": "65d7885df012fc372195803b945853d706308e720ff87b2eeb164934f138f6d9"
+}
