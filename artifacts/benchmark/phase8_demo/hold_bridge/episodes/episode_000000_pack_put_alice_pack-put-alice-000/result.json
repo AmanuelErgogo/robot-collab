@@ -18,5 +18,5 @@
   "sim_time_s": 0.8,
   "success": false,
   "termination_reason": "MAX_STEPS",
-  "wall_time_s": 3.1719861319998017
+  "wall_time_s": 1.2724841499875765
 }

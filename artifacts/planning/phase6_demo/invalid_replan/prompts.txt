@@ -1,0 +1,89 @@
+=== Prompt 0 ===
+[Current State Summary]
+- apple position is (0.000, 0.000, 0.100).
+- banana is packed in bin_front_left.
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is occupied by banana.
+- bin_front_right is empty.
+
+[Per-Agent Skills and Capabilities]
+Alice capabilities:
+- PUT_OBJECT_IN_CONTAINER: learned capability available, not guaranteed; fallback: rrt
+- WAIT: RRT capability available
+Bob capabilities:
+- PUT_OBJECT_IN_CONTAINER: RRT capability available
+- WAIT: RRT capability available
+
+[Previous Structured Outcome]
+none
+
+[Budget and Fallback Constraints]
+{"fallbacks_used": 0, "invalid_plans": 0, "learned_failures": 0, "max_fallbacks": 1, "max_learned_failures": 3, "max_plan_rounds": 3, "plan_rounds_used": 1, "remaining_learned_failures": 3, "remaining_plan_rounds": 2, "retries_by_key": {}}
+- Learned capabilities are available, not guaranteed.
+- RRT fallback is explicit when configured.
+- Retries, replans, and fallbacks are bounded.
+
+[Typed Grammar]
+EXECUTE
+NAME Alice ACTION <SKILL_CALL>
+NAME Bob ACTION <SKILL_CALL>
+
+[Rules]
+- Output exactly one NAME ... ACTION line per configured agent.
+- Use only typed high-level skill calls from the available capabilities.
+- Do not output low-level paths, waypoints, controller names, checkpoint paths, PICK, PLACE, MOVE, or raw actions.
+
+=== Prompt 1 ===
+[Current State Summary]
+- apple position is (0.000, 0.000, 0.100).
+- banana is packed in bin_front_left.
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is occupied by banana.
+- bin_front_right is empty.
+
+[Per-Agent Skills and Capabilities]
+Alice capabilities:
+- PUT_OBJECT_IN_CONTAINER: learned capability available, not guaranteed; fallback: rrt
+- WAIT: RRT capability available
+Bob capabilities:
+- PUT_OBJECT_IN_CONTAINER: RRT capability available
+- WAIT: RRT capability available
+
+[Previous Structured Outcome]
+Status: PLAN_REJECTED
+Validation issues:
+- [TARGET_OCCUPIED] bin_front_left is already occupied by banana.
+Measured current state:
+- apple position is (0.000, 0.000, 0.100).
+- banana is packed in bin_front_left.
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is occupied by banana.
+- bin_front_right is empty.
+Retry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 0, 'max_learned_failures': 3, 'remaining_learned_failures': 3, 'fallbacks_used': 0, 'max_fallbacks': 1, 'invalid_plans': 1, 'retries_by_key': {}}
+Choose one valid skill plan from the available capabilities.
+
+[Budget and Fallback Constraints]
+{"fallbacks_used": 0, "invalid_plans": 1, "learned_failures": 0, "max_fallbacks": 1, "max_learned_failures": 3, "max_plan_rounds": 3, "plan_rounds_used": 2, "remaining_learned_failures": 3, "remaining_plan_rounds": 1, "retries_by_key": {}}
+- Learned capabilities are available, not guaranteed.
+- RRT fallback is explicit when configured.
+- Retries, replans, and fallbacks are bounded.
+
+[Typed Grammar]
+EXECUTE
+NAME Alice ACTION <SKILL_CALL>
+NAME Bob ACTION <SKILL_CALL>
+
+[Rules]
+- Output exactly one NAME ... ACTION line per configured agent.
+- Use only typed high-level skill calls from the available capabilities.
+- Do not output low-level paths, waypoints, controller names, checkpoint paths, PICK, PLACE, MOVE, or raw actions.
+

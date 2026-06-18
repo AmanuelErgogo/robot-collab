@@ -7,7 +7,7 @@
         "--output",
         "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation.json"
       ],
-      "elapsed_s": 0.19193158899997798,
+      "elapsed_s": 0.0678138509974815,
       "exit_code": 0,
       "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/release_validation_tier1.log",
       "name": "release_validation_tier1"
@@ -17,7 +17,7 @@
         "conda",
         "run",
         "-n",
-        "lerobot-roco",
+        "lerobot",
         "python",
         "scripts/validate_rocobench_release.py",
         "--run-bridge-smoke",
@@ -25,7 +25,7 @@
         "--output",
         "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/release_validation_live_bridge.json"
       ],
-      "elapsed_s": 12.709181596000235,
+      "elapsed_s": 5.307338671002071,
       "exit_code": 0,
       "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/release_validation_live_bridge.log",
       "name": "release_validation_live_bridge"
@@ -35,7 +35,7 @@
         "conda",
         "run",
         "-n",
-        "lerobot-roco",
+        "lerobot",
         "python",
         "scripts/evaluate_rocobench.py",
         "--track",
@@ -52,7 +52,7 @@
         "tcp://127.0.0.1:5557",
         "--overwrite"
       ],
-      "elapsed_s": 6.059475787999872,
+      "elapsed_s": 2.359209213987924,
       "exit_code": 0,
       "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/hold_bridge_benchmark.log",
       "name": "hold_bridge_benchmark"
@@ -77,7 +77,7 @@
         "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt",
         "--overwrite"
       ],
-      "elapsed_s": 61.762649424999836,
+      "elapsed_s": 29.280062655976508,
       "exit_code": 0,
       "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/rrt_benchmark.log",
       "name": "rrt_benchmark"
@@ -91,7 +91,7 @@
         "--output",
         "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/rrt_vs_hold_compare.json"
       ],
-      "elapsed_s": 0.17479259599986108,
+      "elapsed_s": 0.06426444600219838,
       "exit_code": 0,
       "log_path": "/home/amanu/robot-collab/artifacts/benchmark/phase8_demo/logs/paired_comparison.log",
       "name": "paired_comparison"

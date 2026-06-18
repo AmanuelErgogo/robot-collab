@@ -12,8 +12,8 @@
       "info": {},
       "metadata": {
         "plan_reasons": [
-          "RRT succeeded: ReasonDirect_time1.6009433269500732_iter1",
-          "RRT succeeded: ReasonSuccess_time18.8039071559906_iter2_smoothed"
+          "RRT succeeded: ReasonDirect_time0.8300578594207764_iter1",
+          "RRT succeeded: ReasonSuccess_time9.752082347869873_iter2_smoothed"
         ]
       },
       "num_sim_steps": 42,
@@ -31,5 +31,5 @@
   "sim_time_s": 0.84,
   "success": true,
   "termination_reason": "SUCCESS",
-  "wall_time_s": 48.57092145200022
+  "wall_time_s": 23.717945518001216
 }

@@ -1,0 +1,14 @@
+Status: PLAN_REJECTED
+Validation issues:
+- [TARGET_OCCUPIED] bin_front_left is already occupied by banana.
+Measured current state:
+- apple position is (0.000, 0.000, 0.100).
+- banana is packed in bin_front_left.
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is occupied by banana.
+- bin_front_right is empty.
+Retry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 0, 'max_learned_failures': 3, 'remaining_learned_failures': 3, 'fallbacks_used': 0, 'max_fallbacks': 1, 'invalid_plans': 1, 'retries_by_key': {}}
+Choose one valid skill plan from the available capabilities.

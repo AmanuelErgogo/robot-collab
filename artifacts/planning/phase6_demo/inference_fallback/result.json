@@ -1,0 +1,435 @@
+{
+  "budget": {
+    "fallbacks_used": 1,
+    "invalid_plans": 0,
+    "learned_failures": 1,
+    "max_fallbacks": 1,
+    "max_learned_failures": 3,
+    "max_plan_rounds": 3,
+    "plan_rounds_used": 1,
+    "remaining_learned_failures": 2,
+    "remaining_plan_rounds": 2,
+    "retries_by_key": {}
+  },
+  "events": [
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "OBSERVED",
+      "index": 0,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PROMPTED",
+      "index": 1,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_PARSED",
+      "index": 2,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTOR_SELECTED",
+      "index": 3,
+      "metadata": {
+        "backend": "learned",
+        "fallback_backend": "rrt",
+        "policy_id": "demo_internal_policy_id",
+        "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+        "route": {
+          "agent": "Alice",
+          "enabled": true,
+          "fallback": "rrt",
+          "policy_id": "demo_internal_policy_id",
+          "primary": "learned",
+          "skill": "PUT_OBJECT_IN_CONTAINER"
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_SNAPSHOTTED",
+      "index": 4,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_STARTED",
+      "index": 5,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_FAILED",
+      "index": 6,
+      "metadata": {
+        "recovery": {
+          "action": "USE_RRT_FALLBACK",
+          "budget_exhausted": false,
+          "failure_code": "POLICY_INFERENCE_FAILURE",
+          "fallback_backend": "rrt",
+          "fingerprint": "50043d79378decf5",
+          "fingerprint_count": 1,
+          "reason": "Mapped POLICY_INFERENCE_FAILURE to USE_RRT_FALLBACK.",
+          "rollback": true
+        },
+        "result": {
+          "done": false,
+          "info": {
+            "is_success": false
+          },
+          "metadata": {
+            "failure_code": "POLICY_INFERENCE_FAILURE",
+            "progress_stage": "not_started"
+          },
+          "num_sim_steps": 1,
+          "reason": "demo inference failure",
+          "reward": 0.0,
+          "status": "execution_failed",
+          "success": false
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "demo inference failure",
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "6cad6bd684580fec",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_RESTORED",
+      "index": 7,
+      "metadata": {
+        "after_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+        "before_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+        "equal": true
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "rollback_digest_equal=True",
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "FEEDBACK_RENDERED",
+      "index": 8,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": "Mapped POLICY_INFERENCE_FAILURE to USE_RRT_FALLBACK.",
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "f1630c7b14695c32",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "FALLBACK_STARTED",
+      "index": 9,
+      "metadata": {
+        "action": "USE_RRT_FALLBACK",
+        "budget_exhausted": false,
+        "failure_code": "POLICY_INFERENCE_FAILURE",
+        "fallback_backend": "rrt",
+        "fingerprint": "50043d79378decf5",
+        "fingerprint_count": 1,
+        "reason": "Mapped POLICY_INFERENCE_FAILURE to USE_RRT_FALLBACK.",
+        "rollback": true
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "Mapped POLICY_INFERENCE_FAILURE to USE_RRT_FALLBACK.",
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "f1630c7b14695c32",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_SNAPSHOTTED",
+      "index": 10,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_STARTED",
+      "index": 11,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "SKILL_SUCCEEDED",
+      "index": 12,
+      "metadata": {
+        "fallback": true,
+        "result": {
+          "done": true,
+          "info": {
+            "is_success": true
+          },
+          "metadata": {
+            "learned_success": false
+          },
+          "num_sim_steps": 1,
+          "reason": "",
+          "reward": 1.0,
+          "status": "success",
+          "success": true
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": \"apple\", \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 1,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "TASK_SUCCEEDED",
+      "index": 13,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_inference_fallback",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": \"apple\", \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    }
+  ],
+  "feedback_history": [
+    "Agent: Alice\nSkill: PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)\nStatus: EXECUTION_FAILED\nFailure: POLICY_INFERENCE_FAILURE\nProgress: not_started\nExecutor reason: demo inference failure\nMeasured current state:\n- apple position is (0.000, 0.000, 0.100).\n- apple requested target is bin_front_left.\n- banana position is (0.200, 0.000, 0.100).\n- milk position is (0.400, 0.000, 0.100).\n- Alice holds nothing.\n- Bob holds nothing.\n- bin_back_left is empty.\n- bin_front_left is empty.\n- bin_front_right is empty.\nRetry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 1, 'max_learned_failures': 3, 'remaining_learned_failures': 2, 'fallbacks_used': 1, 'max_fallbacks': 1, 'invalid_plans': 0, 'retries_by_key': {}}\nDeterministic recovery: USE_RRT_FALLBACK\nChoose one valid skill plan from the available capabilities."
+  ],
+  "final_state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": \"apple\", \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+  "metrics": {
+    "failure_distribution": {
+      "POLICY_INFERENCE_FAILURE": 1
+    },
+    "fallback": {
+      "attempts": 1,
+      "successes": 1
+    },
+    "invalid_plans": 0,
+    "learned": {
+      "attempts": 1,
+      "failures": 1,
+      "successes": 0
+    },
+    "replans": 0,
+    "rollbacks": 1,
+    "rrt": {
+      "attempts": 1,
+      "successes": 1
+    },
+    "task_success": true,
+    "total_sim_steps": 2
+  },
+  "reason": "Task succeeded.",
+  "success": true
+}

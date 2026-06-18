@@ -1,0 +1,42 @@
+{
+  "event_types": [
+    "OBSERVED",
+    "PROMPTED",
+    "PLAN_PARSED",
+    "PLAN_REJECTED",
+    "OBSERVED",
+    "PROMPTED",
+    "PLAN_PARSED",
+    "EXECUTOR_SELECTED",
+    "STATE_SNAPSHOTTED",
+    "EXECUTION_STARTED",
+    "SKILL_SUCCEEDED",
+    "TASK_SUCCEEDED"
+  ],
+  "final_has_objects": true,
+  "initial_has_objects": true,
+  "metrics": {
+    "failure_distribution": {},
+    "fallback": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "invalid_plans": 1,
+    "learned": {
+      "attempts": 0,
+      "failures": 0,
+      "successes": 0
+    },
+    "replans": 0,
+    "rollbacks": 0,
+    "rrt": {
+      "attempts": 1,
+      "successes": 1
+    },
+    "task_success": true,
+    "total_sim_steps": 37
+  },
+  "reason": "Task succeeded.",
+  "scenario": "invalid_then_success",
+  "success": true
+}

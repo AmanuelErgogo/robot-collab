@@ -1,0 +1,504 @@
+{
+  "budget": {
+    "fallbacks_used": 0,
+    "invalid_plans": 0,
+    "learned_failures": 1,
+    "max_fallbacks": 1,
+    "max_learned_failures": 3,
+    "max_plan_rounds": 4,
+    "plan_rounds_used": 2,
+    "remaining_learned_failures": 2,
+    "remaining_plan_rounds": 2,
+    "retries_by_key": {}
+  },
+  "events": [
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "OBSERVED",
+      "index": 0,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "PROMPTED",
+      "index": 1,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_PARSED",
+      "index": 2,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTOR_SELECTED",
+      "index": 3,
+      "metadata": {
+        "backend": "learned",
+        "fallback_backend": "rrt",
+        "policy_id": "demo_internal_policy_id",
+        "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+        "route": {
+          "agent": "Alice",
+          "enabled": true,
+          "fallback": "rrt",
+          "policy_id": "demo_internal_policy_id",
+          "primary": "learned",
+          "skill": "PUT_OBJECT_IN_CONTAINER"
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "44252e7bfc3a24e7",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_SNAPSHOTTED",
+      "index": 4,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_STARTED",
+      "index": 5,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [0.0, 0.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_FAILED",
+      "index": 6,
+      "metadata": {
+        "recovery": {
+          "action": "REPLAN_FROM_CURRENT_STATE",
+          "budget_exhausted": false,
+          "failure_code": "SLIPPAGE",
+          "fallback_backend": "rrt",
+          "fingerprint": "8dd5101982956220",
+          "fingerprint_count": 1,
+          "reason": "Mapped SLIPPAGE to REPLAN_FROM_CURRENT_STATE.",
+          "rollback": false
+        },
+        "result": {
+          "done": false,
+          "info": {
+            "is_success": false
+          },
+          "metadata": {
+            "failure_code": "SLIPPAGE",
+            "progress_stage": "transporting"
+          },
+          "num_sim_steps": 1,
+          "reason": "demo slippage",
+          "reward": 0.0,
+          "status": "execution_failed",
+          "success": false
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "demo slippage",
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "8cca96275b41cf19",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "FEEDBACK_RENDERED",
+      "index": 7,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": "Mapped SLIPPAGE to REPLAN_FROM_CURRENT_STATE.",
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "8cca96275b41cf19",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 3,
+        "retries_by_key": {}
+      },
+      "event_type": "REPLAN_REQUESTED",
+      "index": 8,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": "Mapped SLIPPAGE to REPLAN_FROM_CURRENT_STATE.",
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": null,
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "OBSERVED",
+      "index": 9,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "304fa960e68ad499",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PROMPTED",
+      "index": 10,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "304fa960e68ad499",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_PARSED",
+      "index": 11,
+      "metadata": {},
+      "plan_id": "3344d4f453cb",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "304fa960e68ad499",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTOR_SELECTED",
+      "index": 12,
+      "metadata": {
+        "backend": "learned",
+        "fallback_backend": "rrt",
+        "policy_id": "demo_internal_policy_id",
+        "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+        "route": {
+          "agent": "Alice",
+          "enabled": true,
+          "fallback": "rrt",
+          "policy_id": "demo_internal_policy_id",
+          "primary": "learned",
+          "skill": "PUT_OBJECT_IN_CONTAINER"
+        }
+      },
+      "plan_id": "3344d4f453cb",
+      "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "304fa960e68ad499",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_SNAPSHOTTED",
+      "index": 13,
+      "metadata": {},
+      "plan_id": "3344d4f453cb",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [9.0, 9.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_STARTED",
+      "index": 14,
+      "metadata": {},
+      "plan_id": "3344d4f453cb",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": null}, \"positions\": {\"apple\": [9.0, 9.0, 0.1], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": "learned",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "SKILL_SUCCEEDED",
+      "index": 15,
+      "metadata": {
+        "fallback": false,
+        "result": {
+          "done": true,
+          "info": {
+            "is_success": true
+          },
+          "metadata": {
+            "learned_success": true
+          },
+          "num_sim_steps": 1,
+          "reason": "",
+          "reward": 1.0,
+          "status": "success",
+          "success": true
+        }
+      },
+      "plan_id": "3344d4f453cb",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": \"apple\"}, \"positions\": {\"apple\": [1.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 1,
+        "max_fallbacks": 1,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 4,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 2,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "TASK_SUCCEEDED",
+      "index": 16,
+      "metadata": {},
+      "plan_id": "3344d4f453cb",
+      "reason": null,
+      "run_id": "phase6_demo_slippage_replan",
+      "state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": \"apple\"}, \"positions\": {\"apple\": [1.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+      "timestamp_utc": "2026-06-16T17:25:58Z"
+    }
+  ],
+  "feedback_history": [
+    "Agent: Alice\nSkill: PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)\nStatus: EXECUTION_FAILED\nFailure: SLIPPAGE\nProgress: transporting\nExecutor reason: demo slippage\nMeasured current state:\n- apple position is (9.000, 9.000, 0.100).\n- apple requested target is bin_front_left.\n- banana position is (0.200, 0.000, 0.100).\n- milk position is (0.400, 0.000, 0.100).\n- Alice holds nothing.\n- Bob holds nothing.\n- bin_back_left is empty.\n- bin_front_left is empty.\n- bin_front_right is empty.\nRetry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 4, 'remaining_plan_rounds': 3, 'learned_failures': 1, 'max_learned_failures': 3, 'remaining_learned_failures': 2, 'fallbacks_used': 0, 'max_fallbacks': 1, 'invalid_plans': 0, 'retries_by_key': {}}\nDeterministic recovery: REPLAN_FROM_CURRENT_STATE\nChoose one valid skill plan from the available capabilities."
+  ],
+  "final_state_digest": "{\"held\": {\"Alice\": null, \"Bob\": null}, \"occupancy\": {\"bin_back_left\": null, \"bin_front_left\": null, \"bin_front_right\": \"apple\"}, \"positions\": {\"apple\": [1.0, 0.0, 0.0], \"banana\": [0.2, 0.0, 0.1], \"milk\": [0.4, 0.0, 0.1]}}",
+  "metrics": {
+    "failure_distribution": {
+      "SLIPPAGE": 1
+    },
+    "fallback": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "invalid_plans": 0,
+    "learned": {
+      "attempts": 2,
+      "failures": 1,
+      "successes": 1
+    },
+    "replans": 1,
+    "rollbacks": 0,
+    "rrt": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "task_success": true,
+    "total_sim_steps": 2
+  },
+  "reason": "Task succeeded.",
+  "success": true
+}

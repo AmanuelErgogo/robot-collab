@@ -19,8 +19,8 @@
       "info": {},
       "metadata": {
         "plan_reasons": [
-          "RRT succeeded: ReasonDirect_time1.6009433269500732_iter1",
-          "RRT succeeded: ReasonSuccess_time18.8039071559906_iter2_smoothed"
+          "RRT succeeded: ReasonDirect_time0.8300578594207764_iter1",
+          "RRT succeeded: ReasonSuccess_time9.752082347869873_iter2_smoothed"
         ]
       },
       "num_sim_steps": 42,
