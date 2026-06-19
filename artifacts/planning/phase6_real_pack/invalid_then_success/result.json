@@ -1,0 +1,349 @@
+{
+  "budget": {
+    "fallbacks_used": 0,
+    "invalid_plans": 1,
+    "learned_failures": 0,
+    "max_fallbacks": 0,
+    "max_learned_failures": 3,
+    "max_plan_rounds": 3,
+    "plan_rounds_used": 2,
+    "remaining_learned_failures": 3,
+    "remaining_plan_rounds": 1,
+    "retries_by_key": {}
+  },
+  "events": [
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "OBSERVED",
+      "index": 0,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PROMPTED",
+      "index": 1,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 0,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_PARSED",
+      "index": 2,
+      "metadata": {},
+      "plan_id": "d0f3a141b32f",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 1,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 2,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_REJECTED",
+      "index": 3,
+      "metadata": {},
+      "plan_id": "d0f3a141b32f",
+      "reason": "[NO_PROGRESS] At least one agent must execute PUT_OBJECT_IN_CONTAINER.",
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "OBSERVED",
+      "index": 4,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "PROMPTED",
+      "index": 5,
+      "metadata": {},
+      "plan_id": null,
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "PLAN_PARSED",
+      "index": 6,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTOR_SELECTED",
+      "index": 7,
+      "metadata": {
+        "backend": "rrt",
+        "fallback_backend": "unsupported",
+        "policy_id": null,
+        "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+        "route": {
+          "agent": "Alice",
+          "enabled": true,
+          "fallback": "unsupported",
+          "policy_id": null,
+          "primary": "rrt",
+          "skill": "PUT_OBJECT_IN_CONTAINER"
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": "Matched route for Alice PUT_OBJECT_IN_CONTAINER.",
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "08beea80c356c459",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "STATE_SNAPSHOTTED",
+      "index": 8,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "4f96a02a7234545f",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "EXECUTION_STARTED",
+      "index": 9,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "4f96a02a7234545f",
+      "timestamp_utc": "2026-06-16T17:35:28Z"
+    },
+    {
+      "backend": "rrt",
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "SKILL_SUCCEEDED",
+      "index": 10,
+      "metadata": {
+        "fallback": false,
+        "result": {
+          "done": false,
+          "info": {},
+          "metadata": {
+            "plan_reasons": [
+              "RRT succeeded: ReasonDirect_time0.9350948333740234_iter1",
+              "RRT succeeded: ReasonDirect_time0.570443868637085_iter1"
+            ]
+          },
+          "num_sim_steps": 37,
+          "reason": "",
+          "reward": 0,
+          "status": "success",
+          "success": true
+        }
+      },
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "84ca1e61415ba8b7",
+      "timestamp_utc": "2026-06-16T17:35:31Z"
+    },
+    {
+      "backend": null,
+      "budget": {
+        "fallbacks_used": 0,
+        "invalid_plans": 1,
+        "learned_failures": 0,
+        "max_fallbacks": 0,
+        "max_learned_failures": 3,
+        "max_plan_rounds": 3,
+        "plan_rounds_used": 2,
+        "remaining_learned_failures": 3,
+        "remaining_plan_rounds": 1,
+        "retries_by_key": {}
+      },
+      "event_type": "TASK_SUCCEEDED",
+      "index": 11,
+      "metadata": {},
+      "plan_id": "6b494b7d92d5",
+      "reason": null,
+      "run_id": "phase6_real_pack_invalid_then_success",
+      "state_digest": "a57d1dd60c7f36e3",
+      "timestamp_utc": "2026-06-16T17:35:31Z"
+    }
+  ],
+  "feedback_history": [
+    "Status: PLAN_REJECTED\nValidation issues:\n- [NO_PROGRESS] At least one agent must execute PUT_OBJECT_IN_CONTAINER.\nMeasured current state:\n- apple position is (-1.001, 0.628, 0.200).\n- banana position is (-0.670, 0.629, 0.170).\n- milk position is (-0.611, 0.782, 0.255).\n- soda_can is packed in bin_front_middle.\n- bread position is (-0.400, 0.600, 0.195).\n- cereal position is (-0.166, 0.670, 0.257).\n- Alice holds nothing.\n- Bob holds nothing.\n- bin_back_left is empty.\n- bin_back_middle is empty.\n- bin_back_right is empty.\n- bin_front_left is empty.\n- bin_front_middle is occupied by soda_can.\n- bin_front_right is empty.\nRetry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 0, 'max_learned_failures': 3, 'remaining_learned_failures': 3, 'fallbacks_used': 0, 'max_fallbacks': 0, 'invalid_plans': 1, 'retries_by_key': {}}\nChoose one valid skill plan from the available capabilities."
+  ],
+  "final_state_digest": "a57d1dd60c7f36e3",
+  "metrics": {
+    "failure_distribution": {},
+    "fallback": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "invalid_plans": 1,
+    "learned": {
+      "attempts": 0,
+      "failures": 0,
+      "successes": 0
+    },
+    "replans": 0,
+    "rollbacks": 0,
+    "rrt": {
+      "attempts": 1,
+      "successes": 1
+    },
+    "task_success": true,
+    "total_sim_steps": 37
+  },
+  "reason": "Task succeeded.",
+  "success": true
+}

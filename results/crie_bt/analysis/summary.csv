@@ -1,0 +1,4 @@
+mode,episodes,success_rate,avg_steps,avg_planner_calls,avg_replans,avg_local_retries,recovery_rate,explanation_count,unnecessary_replanning_proxy,failure_counts
+bt_mediated,2,1.0,1.0,1.0,0.0,0.0,2.0,6,0,{}
+direct_feedback,2,1.0,1.0,1.0,0.0,0.0,2.0,0,0,{}
+open_loop,2,1.0,1.0,1.0,0.0,0.0,2.0,0,0,{}

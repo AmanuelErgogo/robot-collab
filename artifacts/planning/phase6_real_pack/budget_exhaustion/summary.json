@@ -1,0 +1,35 @@
+{
+  "event_types": [
+    "OBSERVED",
+    "PROMPTED",
+    "PLAN_PARSED",
+    "PLAN_REJECTED",
+    "BUDGET_EXHAUSTED"
+  ],
+  "final_has_objects": true,
+  "initial_has_objects": true,
+  "metrics": {
+    "failure_distribution": {},
+    "fallback": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "invalid_plans": 1,
+    "learned": {
+      "attempts": 0,
+      "failures": 0,
+      "successes": 0
+    },
+    "replans": 0,
+    "rollbacks": 0,
+    "rrt": {
+      "attempts": 0,
+      "successes": 0
+    },
+    "task_success": false,
+    "total_sim_steps": 0
+  },
+  "reason": "Plan round budget exhausted.",
+  "scenario": "budget_exhaustion",
+  "success": false
+}

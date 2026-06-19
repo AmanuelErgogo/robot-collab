@@ -1,0 +1,20 @@
+Status: PLAN_REJECTED
+Validation issues:
+- [NO_PROGRESS] At least one agent must execute PUT_OBJECT_IN_CONTAINER.
+Measured current state:
+- apple position is (-1.001, 0.628, 0.200).
+- banana position is (-0.670, 0.629, 0.170).
+- milk position is (-0.611, 0.782, 0.255).
+- soda_can is packed in bin_front_middle.
+- bread position is (-0.400, 0.600, 0.195).
+- cereal position is (-0.166, 0.670, 0.257).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_back_middle is empty.
+- bin_back_right is empty.
+- bin_front_left is empty.
+- bin_front_middle is occupied by soda_can.
+- bin_front_right is empty.
+Retry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 1, 'remaining_plan_rounds': 0, 'learned_failures': 0, 'max_learned_failures': 3, 'remaining_learned_failures': 3, 'fallbacks_used': 0, 'max_fallbacks': 0, 'invalid_plans': 1, 'retries_by_key': {}}
+Choose one valid skill plan from the available capabilities.

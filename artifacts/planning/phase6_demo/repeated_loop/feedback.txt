@@ -1,0 +1,41 @@
+Agent: Alice
+Skill: PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)
+Status: EXECUTION_FAILED
+Failure: MISSED_GRASP
+Progress: not_started
+Executor reason: demo missed grasp
+Measured current state:
+- apple position is (0.000, 0.000, 0.100).
+- apple requested target is bin_front_left.
+- banana position is (0.200, 0.000, 0.100).
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is empty.
+- bin_front_right is empty.
+Retry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 1, 'max_learned_failures': 3, 'remaining_learned_failures': 2, 'fallbacks_used': 0, 'max_fallbacks': 1, 'invalid_plans': 0, 'retries_by_key': {'Alice:PUT_OBJECT_IN_CONTAINER:apple:bin_front_left': 1}}
+Deterministic recovery: RETRY_LEARNED
+Choose one valid skill plan from the available capabilities.
+
+---
+
+Agent: Alice
+Skill: PUT_OBJECT_IN_CONTAINER(object=apple, container=bin_front_left)
+Status: EXECUTION_FAILED
+Failure: MISSED_GRASP
+Progress: not_started
+Executor reason: demo missed grasp again
+Measured current state:
+- apple position is (0.000, 0.000, 0.100).
+- apple requested target is bin_front_left.
+- banana position is (0.200, 0.000, 0.100).
+- milk position is (0.400, 0.000, 0.100).
+- Alice holds nothing.
+- Bob holds nothing.
+- bin_back_left is empty.
+- bin_front_left is empty.
+- bin_front_right is empty.
+Retry budget: {'plan_rounds_used': 1, 'max_plan_rounds': 3, 'remaining_plan_rounds': 2, 'learned_failures': 2, 'max_learned_failures': 3, 'remaining_learned_failures': 1, 'fallbacks_used': 1, 'max_fallbacks': 1, 'invalid_plans': 0, 'retries_by_key': {'Alice:PUT_OBJECT_IN_CONTAINER:apple:bin_front_left': 1}}
+Deterministic recovery: USE_RRT_FALLBACK
+Choose one valid skill plan from the available capabilities.

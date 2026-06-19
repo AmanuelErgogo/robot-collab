@@ -41,7 +41,7 @@
   "method": "rrt",
   "predicate_version": "pack.predicate.v1",
   "protocol_version": "phase8.benchmark.v1",
-  "roco_commit": "7fa484e1397c530c9941fcc1cc94f970ee25f93f",
+  "roco_commit": "048396de8c4148eef8d2de324f98c6210585f551",
   "roco_dirty": true,
   "schema_version": "1.0",
   "suite": "rocobench_pack_skills_v1",
