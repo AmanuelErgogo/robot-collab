@@ -42,7 +42,10 @@ def _distance(a: Any, b: Any) -> Optional[float]:
 
 
 def get_object_position(obs: Any, object_name: str):
-    return _position(_get_nested(obs, "objects", object_name) or _get_nested(obs, object_name))
+    value = _get_nested(obs, "objects", object_name)
+    if value is None:
+        value = _get_nested(obs, object_name)
+    return _position(value)
 
 
 def get_target_position(env: Any, target_name: str):
@@ -51,10 +54,20 @@ def get_target_position(env: Any, target_name: str):
             return env.get_target_position(target_name)
         except Exception:
             pass
-    return _position(_get_nested(env, "bin_slot_xposes", target_name) or _get_nested(env, "targets", target_name))
+    value = _get_nested(env, "bin_slot_xposes", target_name)
+    if value is None:
+        value = _get_nested(env, "targets", target_name)
+    return _position(value)
 
 
-def get_gripper_position(obs: Any, agent_name: str):
+def get_gripper_position(obs: Any, agent_name: str, env: Any = None):
+    if env is not None:
+        robot_name = getattr(env, "robot_name_map_inv", {}).get(agent_name)
+        robot_state = getattr(obs, robot_name, None) if robot_name is not None else None
+        if robot_state is not None:
+            for key in ("gripper_position", "ee_xpos", "xpos", "pos"):
+                if hasattr(robot_state, key):
+                    return getattr(robot_state, key)
     return _position(
         _get_nested(obs, "agents", agent_name, "gripper_position")
         or _get_nested(obs, "agents", agent_name, "eef_pos")
@@ -62,7 +75,14 @@ def get_gripper_position(obs: Any, agent_name: str):
     )
 
 
-def is_object_grasped(obs: Any, agent_name: str, object_name: str) -> Optional[bool]:
+def is_object_grasped(obs: Any, agent_name: str, object_name: str, env: Any = None) -> Optional[bool]:
+    if env is not None and hasattr(env, "get_agent_held_object"):
+        try:
+            held_obj = env.get_agent_held_object(obs, agent_name)
+            if held_obj is not None:
+                return str(held_obj) == str(object_name)
+        except Exception:
+            pass
     held = _get_nested(obs, "held", agent_name) or _get_nested(obs, "agents", agent_name, "held_object")
     if held is not None:
         return str(held) == str(object_name)
@@ -75,10 +95,22 @@ def is_object_grasped(obs: Any, agent_name: str, object_name: str) -> Optional[b
     return None
 
 
-def is_object_at_target(obs: Any, object_name: str, target_name: str) -> Optional[bool]:
+def is_object_at_target(obs: Any, object_name: str, target_name: str, env: Any = None) -> Optional[bool]:
+    if env is not None and hasattr(env, "get_packed_slot_for_object"):
+        try:
+            return env.get_packed_slot_for_object(obs, object_name) == target_name
+        except Exception:
+            pass
     packed = _get_nested(obs, "packed", object_name) or _get_nested(obs, "object_targets", object_name)
     if packed is not None:
         return str(packed) == str(target_name)
+    if env is not None and hasattr(env, "get_slot_occupancy"):
+        try:
+            occupancy = env.get_slot_occupancy(obs)
+            if target_name in occupancy:
+                return str(occupancy.get(target_name)) == str(object_name)
+        except Exception:
+            pass
     occupancy = _get_nested(obs, "slot_occupancy", target_name)
     if occupancy is not None:
         return str(occupancy) == str(object_name)
@@ -102,7 +134,7 @@ class ProgressMonitor(object):
         self.last_score = 0.0
         self.stagnant_steps = 0
         obj = skill_call.arguments.get("object", skill_call.arguments.get("target", ""))
-        grasped = is_object_grasped(observation, skill_call.agent, obj)
+        grasped = is_object_grasped(observation, skill_call.agent, obj, self.env)
         self.was_grasped = bool(grasped)
 
     def update(self, skill_call: SkillCall, observation: Any, action_info: Optional[dict] = None) -> ProgressState:
@@ -112,9 +144,9 @@ class ProgressMonitor(object):
         target = skill_call.arguments.get("container", skill_call.arguments.get("target", ""))
         obj_pos = get_object_position(observation, obj)
         target_pos = get_target_position(self.env or observation, target)
-        gripper_pos = get_gripper_position(observation, skill_call.agent)
-        grasped = is_object_grasped(observation, skill_call.agent, obj)
-        at_target = is_object_at_target(observation, obj, target)
+        gripper_pos = get_gripper_position(observation, skill_call.agent, self.env)
+        grasped = is_object_grasped(observation, skill_call.agent, obj, self.env)
+        at_target = is_object_at_target(observation, obj, target, self.env)
         gripper_object_dist = _distance(gripper_pos, obj_pos)
         object_target_dist = _distance(obj_pos, target_pos)
 

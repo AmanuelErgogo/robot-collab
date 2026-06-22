@@ -116,6 +116,7 @@ class MakeSandwichTask(MujocoSimEnv):
          
         self.align_threshold = 0.15
         self.recipe_order = SANDWICH_RECIPES["bacon"]
+        self.recipe_name = "bacon_sandwich"
         
  
     
@@ -460,5 +461,4 @@ if __name__ == "__main__":
     print(env.describe_obs(obs))
     print(env.get_agent_prompt(obs, "Dave"))
     print(env.get_agent_prompt(obs, "Chad"))
-
 

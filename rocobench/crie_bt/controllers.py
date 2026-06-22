@@ -61,6 +61,17 @@ class BaseArchitectureController(object):
         key = feedback.failure.failure_code.value
         log["failure_counts"][key] = int(log["failure_counts"].get(key, 0)) + 1
 
+    def _get_observation(self, env, feedback: Optional[ExecutionFeedback] = None, fallback: Any = None) -> Any:
+        if feedback is not None:
+            raw_info = dict(feedback.raw_info or {})
+            if "observation" in raw_info:
+                return raw_info["observation"]
+        if hasattr(env, "get_obs"):
+            return env.get_obs()
+        if hasattr(env, "get_observation"):
+            return env.get_observation()
+        return {} if fallback is None else fallback
+
 
 class OpenLoopController(BaseArchitectureController):
     mode = ExecutionMode.OPEN_LOOP
@@ -69,7 +80,13 @@ class OpenLoopController(BaseArchitectureController):
         log = self._empty_log(self.mode, task_goal)
         context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=0)
         observation = env.reset() if hasattr(env, "reset") else {}
-        plan = self.planner.generate_plan(task_goal, observation, context=context)
+        try:
+            plan = self.planner.generate_plan(task_goal, observation, context=context)
+        except Exception as exc:
+            log["planner_calls"] = 1
+            log["failure_counts"]["PLANNER_ERROR"] = 1
+            log["explanations"].append("Planner failed to generate plan: {}".format(exc))
+            return log
         log["planner_calls"] = 1
         self.executor.reset(env, context)
         for step in plan.steps:
@@ -78,6 +95,7 @@ class OpenLoopController(BaseArchitectureController):
             while log["steps"] < max_steps:
                 feedback = self.executor.step(observation)
                 log["steps"] += 1
+                observation = self._get_observation(env, feedback, observation)
                 if feedback.status != BTStatus.RUNNING:
                     break
             self.executor.stop()
@@ -103,22 +121,32 @@ class DirectFeedbackController(BaseArchitectureController):
         plan = self.planner.generate_plan(task_goal, observation, context=context)
         log["planner_calls"] = 1
         self.executor.reset(env, context)
+        step_index = 0
         while log["steps"] < max_steps:
-            step = plan.steps[0]
-            self.executor.start_skill(step.skill_call, observation)
-            feedback = self.executor.step(observation)
-            log["steps"] += 1
-            self.executor.stop()
-            log["subtask_results"].append(feedback.to_dict())
-            self._record_failure(log, feedback)
-            if feedback.status == BTStatus.SUCCESS and not feedback.failure.is_failure:
-                log["completed_subtasks"] += 1
+            if step_index >= len(plan.steps):
                 log["success"] = True
                 return log
+            step = plan.steps[step_index]
+            self.executor.start_skill(step.skill_call, observation)
+            feedback = None
+            while log["steps"] < max_steps:
+                feedback = self.executor.step(observation)
+                log["steps"] += 1
+                observation = self._get_observation(env, feedback, observation)
+                if feedback.status != BTStatus.RUNNING:
+                    break
+            self.executor.stop()
+            log["subtask_results"].append(feedback.to_dict() if feedback is not None else {"step_id": step.step_id})
+            self._record_failure(log, feedback)
+            if feedback is not None and feedback.status == BTStatus.SUCCESS and not feedback.failure.is_failure:
+                log["completed_subtasks"] += 1
+                step_index += 1
+                continue
             log["failed_subtasks"] += 1
             log["replans"] += 1
             log["planner_calls"] += 1
             plan = self.planner.generate_plan(task_goal, observation, feedback=feedback, context=context)
+            step_index = 0
         return log
 
 
@@ -133,7 +161,7 @@ class BTMediatedController(BaseArchitectureController):
         log["planner_calls"] = 1
         bt = BehaviorTreeController(
             self.executor,
-            progress_monitor=ProgressMonitor(max_steps=max_steps),
+            progress_monitor=ProgressMonitor(env=env, max_steps=max_steps),
             uncertainty_estimator=UncertaintyEstimator(self.uncertainty_mode),
             failure_detector=FailureDetector(max_steps=max_steps),
             max_retries=self.max_retries,
@@ -155,6 +183,7 @@ class BTMediatedController(BaseArchitectureController):
                 log["local_retries"] += 1
             if result.feedback is not None:
                 log["subtask_results"].append(result.feedback.to_dict())
+            observation = self._get_observation(env, result.feedback, observation)
             if result.status == BTStatus.SUCCESS:
                 log["completed_subtasks"] = result.completed_subtasks
                 log["success"] = True

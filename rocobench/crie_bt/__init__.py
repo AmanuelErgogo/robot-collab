@@ -5,6 +5,21 @@ from .bt_controller import BehaviorTreeController
 from .controllers import BTMediatedController, DirectFeedbackController, OpenLoopController
 from .executor import LearnedSkillExecutor, RRTSkillExecutor, ScriptedSkillExecutor
 from .planner import LLMPlannerAdapter, ScriptedPlanner
+from .legacy_tasks import (
+    LEGACY_ACTION_PLAN,
+    LegacyActionPlanner,
+    LegacyPromptPlanner,
+    LegacyTaskRRTExecutorAdapter,
+    available_legacy_task_ids,
+    legacy_task_spec,
+)
+from .roco_adapters import (
+    FakePackGroceryUncertaintyReporter,
+    PackGroceryCRIEPlanner,
+    PackGroceryRRTExecutorAdapter,
+    build_pack_grocery_crie_plan,
+    pack_grocery_task_spec,
+)
 from .types import (
     BTDecision,
     CollaborativePlan,
@@ -34,9 +49,16 @@ __all__ = [
     "ExecutionMode",
     "FailureCode",
     "FailureState",
+    "FakePackGroceryUncertaintyReporter",
+    "LEGACY_ACTION_PLAN",
     "LLMPlannerAdapter",
+    "LegacyActionPlanner",
+    "LegacyPromptPlanner",
+    "LegacyTaskRRTExecutorAdapter",
     "LearnedSkillExecutor",
     "OpenLoopController",
+    "PackGroceryCRIEPlanner",
+    "PackGroceryRRTExecutorAdapter",
     "PlanStep",
     "ProgressStage",
     "ProgressState",
@@ -49,4 +71,8 @@ __all__ = [
     "SkillCall",
     "SubtaskCommand",
     "UncertaintyState",
+    "available_legacy_task_ids",
+    "build_pack_grocery_crie_plan",
+    "legacy_task_spec",
+    "pack_grocery_task_spec",
 ]

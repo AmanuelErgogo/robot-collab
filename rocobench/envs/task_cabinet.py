@@ -137,11 +137,11 @@ class CabinetTask(MujocoSimEnv):
             self.coaster_pos[geom_name] = self.physics.data.geom(geom_name).xpos.copy()
             self.coaster_pos[geom_name][2] += 0.25 # move up a bit
             self.coaster_pos[geom_name][0] += 0.09 # because cup_right grasp site is not at center
+        self.cabinet_pos = self.physics.data.body("cabinet").xpos.copy()
         self.open_pose = dict(
             left_door_handle=self.compute_open_pose("left_door_handle"),
             right_door_handle=self.compute_open_pose("right_door_handle"),
         )
-        self.cabinet_pos = self.physics.data.body("cabinet").xpos.copy()
 
     def get_allowed_collision_pairs(self) -> List[Tuple[int, int]]:
         ret = []
@@ -530,4 +530,3 @@ if __name__ == "__main__":
     obs = env.reset()
     print(env.describe_obs(obs))
     print(env.get_agent_prompt(obs, "Alice"))
-    

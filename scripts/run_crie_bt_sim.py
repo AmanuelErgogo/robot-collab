@@ -1,0 +1,445 @@
+#!/usr/bin/env python
+"""Run CRIE-BT against existing RoCoBench MuJoCo task simulators."""
+
+import argparse
+import json
+import os
+import sys
+from typing import Any, Dict, List
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+# Legacy RRT debugging paths may contain ``breakpoint()`` calls on failures.
+os.environ.setdefault("PYTHONBREAKPOINT", "0")
+
+from rocobench.crie_bt.controllers import build_controller
+from rocobench.crie_bt.legacy_tasks import (
+    FakeLegacyUncertaintyReporter,
+    LegacyActionPlanner,
+    LegacyPromptPlanner,
+    LegacyTaskRRTExecutorAdapter,
+    agent_names_for_env,
+    available_legacy_task_ids,
+    legacy_task_spec,
+    make_legacy_task_env,
+    make_wait_response,
+    split_legacy_responses,
+    supported_uncertainty_profiles as supported_legacy_uncertainty_profiles,
+)
+from rocobench.crie_bt.roco_adapters import (
+    FakePackGroceryUncertaintyReporter,
+    PackGroceryCRIEPlanner,
+    PackGroceryRRTExecutorAdapter,
+    pack_grocery_task_spec,
+    parse_object_targets,
+    supported_uncertainty_profiles as supported_pack_uncertainty_profiles,
+)
+from rocobench.crie_bt.status import ExecutionMode
+
+
+TASK_GOALS = {
+    "pack": "Pack all groceries into the bin.",
+    "sort": "Sort the block into the panel assigned by the task.",
+    "sweep": "Sweep the cubes into the dustpan.",
+    "sandwich": "Assemble the sandwich in the required order.",
+    "rope": "Move the rope to the target zone.",
+    "cabinet": "Complete the cabinet manipulation task.",
+}
+
+
+def _json_safe(value: Any) -> Any:
+    try:
+        import numpy as np
+    except Exception:
+        np = None
+    if hasattr(value, "to_dict"):
+        return value.to_dict()
+    if np is not None and isinstance(value, np.ndarray):
+        return value.tolist()
+    if np is not None and isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
+
+
+def _modes(value: str) -> List[str]:
+    if value == "all":
+        return [ExecutionMode.OPEN_LOOP.value, ExecutionMode.DIRECT_FEEDBACK.value, ExecutionMode.BT_MEDIATED.value]
+    return [value]
+
+
+def _tasks(value: str) -> List[str]:
+    if value == "all":
+        return list(available_legacy_task_ids())
+    return [value]
+
+
+def _build_pack_env(seed: int):
+    from rocobench.envs import PackGroceryTask
+
+    env = PackGroceryTask(
+        render_cameras=["teaser"],
+        randomize_init=False,
+        render_point_cloud=False,
+    )
+    env.seed(np_seed=int(seed))
+    env.reset(reload=True)
+    return env
+
+
+def _read_legacy_responses(args) -> List[str]:
+    if args.legacy_response_file:
+        with open(args.legacy_response_file, "r", encoding="utf-8") as f:
+            return split_legacy_responses(f.read())
+    if args.legacy_response:
+        return split_legacy_responses(args.legacy_response)
+    return []
+
+
+def _select_adapter(task_id: str, args) -> str:
+    if args.planner_mode in ("plan", "chat", "dialog"):
+        if args.adapter == "typed_pack":
+            raise ValueError("--planner-mode {} requires the legacy action-plan adapter.".format(args.planner_mode))
+        return "legacy"
+    if args.adapter == "typed_pack":
+        if task_id != "pack":
+            raise ValueError("--adapter typed_pack is only valid for --task pack.")
+        return "typed_pack"
+    if args.adapter == "legacy":
+        return "legacy"
+    if task_id == "pack" and not (args.legacy_response or args.legacy_response_file):
+        return "typed_pack"
+    return "legacy"
+
+
+def _build_pack_executor(env, args):
+    from prompting.parser import LLMResponseParser
+    from rocobench.skills import PackGrocerySkillPlanValidator, RRTSkillCompiler, RRTSkillExecutor, build_pack_grocery_skill_registry
+
+    agent_names = list(env.robot_name_map.values())
+    registry = build_pack_grocery_skill_registry(agent_names)
+    validator = PackGrocerySkillPlanValidator(env, registry, agent_names)
+    legacy_parser = LLMResponseParser(
+        env,
+        "action_only",
+        env.robot_name_map,
+        ["NAME", "ACTION"],
+        use_prepick=env.use_prepick,
+        use_preplace=env.use_preplace,
+    )
+    compiler = RRTSkillCompiler(env, legacy_parser)
+    legacy_executor = RRTSkillExecutor(
+        env=env,
+        robots=env.get_sim_robots(),
+        max_sim_steps=int(args.max_sim_steps),
+    )
+    return PackGroceryRRTExecutorAdapter(
+        env=env,
+        agent_names=agent_names,
+        validator=validator,
+        compiler=compiler,
+        executor=legacy_executor,
+        artifact_dir=args.artifact_dir,
+        uncertainty_reporter=FakePackGroceryUncertaintyReporter(args.uncertainty_profile),
+    )
+
+
+def _uses_shared_llm_api(args) -> bool:
+    return str(args.llm_source).strip().lower().startswith("gemini")
+
+
+def _prompter_llm_source(args) -> str:
+    if _uses_shared_llm_api(args):
+        return "gpt-4"
+    return args.llm_source
+
+
+def _install_llm_api_query_bridge(prompter, args) -> None:
+    from llm_api import create_llm_client
+
+    client = create_llm_client(args.llm_source, api_key_path=(args.api_key_path or None))
+
+    def query_once(system_prompt, user_prompt="", max_query=None):
+        del max_query
+        messages = [{"role": "system", "content": system_prompt}]
+        if user_prompt:
+            messages.append({"role": "user", "content": user_prompt})
+        response = client.generate(
+            messages=messages,
+            max_tokens=int(args.max_tokens),
+            temperature=float(args.temperature),
+        )
+        print("======= response ======= \n ", response.text)
+        print("======= usage ======= \n ", response.usage)
+        return response.text, response.usage
+
+    prompter.query_once = query_once
+
+
+def _build_legacy_prompt_planner(env, task_id: str, args):
+    from prompting import DialogPrompter, FeedbackManager, LLMResponseParser, SingleThreadPrompter
+    from rocobench import MultiArmRRT
+
+    response_keywords = ["NAME", "ACTION"]
+    if args.llm_output_mode == "action_and_path":
+        response_keywords.append("PATH")
+    parser = LLMResponseParser(
+        env,
+        args.llm_output_mode,
+        env.robot_name_map,
+        response_keywords,
+        int(args.direct_waypoints),
+        use_prepick=getattr(env, "use_prepick", False),
+        use_preplace=getattr(env, "use_preplace", False),
+        split_parsed_plans=False,
+    )
+    rrt_planner = MultiArmRRT(
+        env.physics,
+        robots=env.get_sim_robots(),
+        graspable_object_names=env.get_graspable_objects(),
+        allowed_collision_pairs=env.get_allowed_collision_pairs(),
+    )
+    feedback_manager = FeedbackManager(
+        env=env,
+        planner=rrt_planner,
+        llm_output_mode=args.llm_output_mode,
+        robot_name_map=env.robot_name_map,
+        step_std_threshold=getattr(env, "waypoint_std_threshold", 0.1),
+        max_failed_waypoints=int(args.max_failed_waypoints),
+    )
+    if args.planner_mode in ("plan", "chat"):
+        prompter = SingleThreadPrompter(
+            env=env,
+            parser=parser,
+            feedback_manager=feedback_manager,
+            max_tokens=int(args.max_tokens),
+            debug_mode=False,
+            use_waypoints=(args.llm_output_mode == "action_and_path"),
+            use_history=(not args.no_history),
+            num_replans=int(args.num_replans),
+            comm_mode=args.planner_mode,
+            temperature=float(args.temperature),
+            llm_source=_prompter_llm_source(args),
+        )
+    else:
+        prompter = DialogPrompter(
+            env=env,
+            parser=parser,
+            feedback_manager=feedback_manager,
+            max_tokens=int(args.max_tokens),
+            debug_mode=False,
+            robot_name_map=env.robot_name_map,
+            max_calls_per_round=int(args.max_calls_per_round),
+            use_waypoints=(args.llm_output_mode == "action_and_path"),
+            use_history=(not args.no_history),
+            use_feedback=(not args.no_feedback),
+            num_replans=int(args.num_replans),
+            temperature=float(args.temperature),
+            llm_source=_prompter_llm_source(args),
+        )
+    if _uses_shared_llm_api(args):
+        _install_llm_api_query_bridge(prompter, args)
+    save_dir = args.prompt_artifact_dir
+    if not save_dir and args.artifact_dir:
+        save_dir = os.path.join(args.artifact_dir, "planner_prompts")
+    return LegacyPromptPlanner(
+        task_id=task_id,
+        prompter=prompter,
+        planner_mode=args.planner_mode,
+        agent_names=agent_names_for_env(env),
+        save_dir=save_dir,
+    )
+
+
+def _build_legacy_executor(env, task_id: str, args):
+    from prompting.parser import LLMResponseParser
+    from rocobench.skills import RRTSkillExecutor
+
+    legacy_parser = LLMResponseParser(
+        env,
+        "action_only",
+        env.robot_name_map,
+        ["NAME", "ACTION"],
+        use_prepick=getattr(env, "use_prepick", False),
+        use_preplace=getattr(env, "use_preplace", False),
+    )
+    legacy_executor = RRTSkillExecutor(
+        env=env,
+        robots=env.get_sim_robots(),
+        max_sim_steps=int(args.max_sim_steps),
+    )
+    return LegacyTaskRRTExecutorAdapter(
+        env=env,
+        task_id=task_id,
+        parser=legacy_parser,
+        executor=legacy_executor,
+        artifact_dir=args.artifact_dir,
+        uncertainty_reporter=FakeLegacyUncertaintyReporter(args.uncertainty_profile),
+    )
+
+
+def _build_env(task_id: str, adapter: str, seed: int):
+    if task_id == "pack" and adapter == "typed_pack":
+        return _build_pack_env(seed)
+    return make_legacy_task_env(task_id, seed=seed)
+
+
+def _build_planner(env, task_id: str, adapter: str, args):
+    if task_id == "pack" and adapter == "typed_pack":
+        object_targets = parse_object_targets(args.object_targets)
+        return PackGroceryCRIEPlanner(env, object_targets=object_targets, active_agent=args.agent)
+    if args.planner_mode in ("plan", "chat", "dialog"):
+        return _build_legacy_prompt_planner(env, task_id, args)
+    agent_names = agent_names_for_env(env)
+    responses = _read_legacy_responses(args) or [make_wait_response(agent_names)]
+    return LegacyActionPlanner(task_id, responses=responses, agent_names=agent_names)
+
+
+def _build_executor(env, task_id: str, adapter: str, args):
+    if task_id == "pack" and adapter == "typed_pack":
+        return _build_pack_executor(env, args)
+    return _build_legacy_executor(env, task_id, args)
+
+
+def _task_goal(task_id: str, args) -> str:
+    return args.task_goal or TASK_GOALS.get(task_id, "Complete the {} RoCoBench task.".format(task_id))
+
+
+def _describe_obs(env, obs) -> str:
+    if obs is not None and hasattr(env, "describe_obs"):
+        return env.describe_obs(obs)
+    return ""
+
+
+def _sim_success(env, obs, fallback: bool) -> bool:
+    if obs is not None and hasattr(env, "get_reward_done"):
+        try:
+            return bool(env.get_reward_done(obs)[1])
+        except Exception:
+            return bool(fallback)
+    return bool(fallback)
+
+
+def _task_spec(env, task_id: str, adapter: str) -> Dict[str, Any]:
+    if task_id == "pack" and adapter == "typed_pack":
+        return pack_grocery_task_spec(env)
+    return legacy_task_spec(env, task_id)
+
+
+def run(args) -> List[Dict[str, Any]]:
+    output_path = os.path.abspath(args.output)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    rows = []
+    with open(output_path, "w", encoding="utf-8") as f:
+        for episode in range(int(args.episodes)):
+            for task_id in _tasks(args.task):
+                for mode in _modes(args.mode):
+                    if args.planner_mode in ("plan", "chat", "dialog") and mode != ExecutionMode.OPEN_LOOP.value:
+                        raise ValueError(
+                            "--planner-mode {} is implemented only with --mode open_loop for now.".format(
+                                args.planner_mode
+                            )
+                        )
+                    adapter = _select_adapter(task_id, args)
+                    env = _build_env(task_id, adapter, int(args.seed) + episode)
+                    obs = env.get_obs() if hasattr(env, "get_obs") else None
+                    planner = _build_planner(env, task_id, adapter, args)
+                    executor = _build_executor(env, task_id, adapter, args)
+                    controller = build_controller(
+                        mode,
+                        planner,
+                        executor,
+                        uncertainty_mode=args.uncertainty,
+                        max_retries=int(args.max_retries),
+                    )
+                    row = controller.run_episode(env, _task_goal(task_id, args), int(args.max_steps))
+                    final_obs = env.get_obs() if hasattr(env, "get_obs") else None
+                    row["episode"] = episode
+                    row["task_id"] = task_id
+                    row["task_name"] = env.__class__.__name__
+                    row["adapter"] = adapter
+                    row["task_spec"] = _task_spec(env, task_id, adapter)
+                    row["initial_scene"] = _describe_obs(env, obs)
+                    row["final_scene"] = _describe_obs(env, final_obs)
+                    row["sim_success"] = _sim_success(env, final_obs, row.get("success", False))
+                    row["skipped"] = False
+                    f.write(json.dumps(_json_safe(row), sort_keys=True) + "\n")
+                    rows.append(row)
+    return rows
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    task_choices = ["all"] + list(available_legacy_task_ids())
+    uncertainty_profiles = sorted(set(supported_pack_uncertainty_profiles()).union(supported_legacy_uncertainty_profiles()))
+    parser.add_argument("--task", choices=task_choices, default="pack")
+    parser.add_argument(
+        "--adapter",
+        choices=["auto", "typed_pack", "legacy"],
+        default="auto",
+        help="auto uses the typed PackGrocery adapter for pack and the legacy action-plan adapter otherwise.",
+    )
+    parser.add_argument(
+        "--planner-mode",
+        choices=["legacy_action", "plan", "chat", "dialog"],
+        default="legacy_action",
+        help="legacy_action uses provided EXECUTE blocks; plan/chat/dialog use existing RoCoBench LLM prompters.",
+    )
+    parser.add_argument("--mode", choices=["open_loop", "direct_feedback", "bt_mediated", "all"], default="bt_mediated")
+    parser.add_argument("--episodes", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--output", default="results/crie_bt/pack_grocery_sim.jsonl")
+    parser.add_argument("--artifact-dir", default=None)
+    parser.add_argument("--agent", default="Alice")
+    parser.add_argument("--task-goal", default="")
+    parser.add_argument(
+        "--legacy-response",
+        default="",
+        help="One or more raw RoCoBench EXECUTE/NAME/ACTION blocks. Literal \\n sequences are accepted.",
+    )
+    parser.add_argument(
+        "--legacy-response-file",
+        default="",
+        help="File containing one or more raw RoCoBench EXECUTE/NAME/ACTION blocks for the legacy adapter.",
+    )
+    parser.add_argument(
+        "--object-targets",
+        default="",
+        help="Typed PackGrocery only: comma-separated object:container overrides.",
+    )
+    parser.add_argument("--max-steps", type=int, default=20)
+    parser.add_argument("--max-sim-steps", type=int, default=5000)
+    parser.add_argument("--max-retries", type=int, default=1)
+    parser.add_argument("--llm-output-mode", choices=["action_only", "action_and_path"], default="action_only")
+    parser.add_argument("--llm-source", default="gpt-4")
+    parser.add_argument("--api-key-path", default="")
+    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--num-replans", type=int, default=3)
+    parser.add_argument("--max-tokens", type=int, default=1024)
+    parser.add_argument("--max-calls-per-round", type=int, default=10)
+    parser.add_argument("--direct-waypoints", type=int, default=0)
+    parser.add_argument("--max-failed-waypoints", type=int, default=1)
+    parser.add_argument("--no-history", action="store_true")
+    parser.add_argument("--no-feedback", action="store_true")
+    parser.add_argument("--prompt-artifact-dir", default="")
+    parser.add_argument(
+        "--uncertainty",
+        choices=["none", "heuristic", "ensemble_variance", "policy_metadata"],
+        default="policy_metadata",
+        help="CRIE-BT uncertainty estimator mode. policy_metadata consumes fake confidence/entropy.",
+    )
+    parser.add_argument("--uncertainty-profile", choices=uncertainty_profiles, default="nominal")
+    args = parser.parse_args(argv)
+    rows = run(args)
+    successes = sum(1 for row in rows if row.get("success"))
+    print(json.dumps({"output": args.output, "episodes": len(rows), "successes": successes}, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -93,13 +93,15 @@ class ExecuteSkillNode(BTNode):
             start_event = None
         feedback = self.executor.step(observation)
         progress = self.progress_monitor.update(self.skill_call, observation, dict(feedback.raw_info or {}))
+        progress = progress if progress.score >= feedback.progress.score else feedback.progress
         uncertainty = self.uncertainty_estimator.estimate(self.skill_call, observation, feedback)
+        uncertainty = uncertainty if uncertainty.uncertainty >= feedback.uncertainty.uncertainty else feedback.uncertainty
         failure = self.failure_detector.detect(self.skill_call, progress, uncertainty, observation, feedback)
         feedback = type(feedback)(
             skill_call=feedback.skill_call,
             status=feedback.status,
-            progress=progress if progress.score >= feedback.progress.score else feedback.progress,
-            uncertainty=uncertainty if uncertainty.uncertainty >= feedback.uncertainty.uncertainty else feedback.uncertainty,
+            progress=progress,
+            uncertainty=uncertainty,
             failure=failure if failure.is_failure else feedback.failure,
             message=feedback.message,
             raw_info=feedback.raw_info,

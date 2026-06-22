@@ -1,0 +1,15 @@
+\begin{table}[t]
+  \centering
+  \caption{Sandwich task: plan, chat, and dialog communication modes with open-loop execution. SR = simulator success rate; 95\% CI via Wilson score interval; steps and LLM calls reported as mean $\pm$ std.}
+  \label{tab:sandwich_open_loop}
+  \begin{tabular}{lrrrrrr}
+    \toprule
+    \textbf{Mode} & \textbf{ASR (\%)} & \textbf{95\% CI} & \textbf{Steps} & \textbf{Time (s)} & \textbf{LLM Lat (s)} & \textbf{P.Err} \\
+    \midrule
+    Plan (Centralised) & 100.0 & [80, 100] & $1.0 \pm 0.0$ & $9.3 \pm 0.3$ & 4.9 & 0/15 \\
+    Chat (w/ History) & 100.0 & [80, 100] & $1.0 \pm 0.0$ & $15.6 \pm 1.6$ & 12.5 & 0/15 \\
+    Dialog (Multi-agent) & 86.7 & [62, 96] & $0.9 \pm 0.4$ & $18.5 \pm 11.7$ & 16.0 & 2/15 \\
+    \bottomrule
+  \end{tabular}
+  \footnotesize{ASR = Action Success Rate (LLM plan parseable \& RRT executed). P.Err = planner errors (LLM failed to produce a valid plan). $n=15$ episodes per mode, seeds $\in \{0,1,2\}$, open-loop controller, Gemini 2.5 Flash.}
+\end{table}

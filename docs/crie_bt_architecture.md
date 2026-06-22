@@ -6,7 +6,17 @@ legacy RoCo `action_only` and `action_and_path` flows remain unchanged.
 
 ## Motivation
 
-The goal is to compare three planner-executor strategies under a common schema:
+CRIE-BT evaluation has two orthogonal axes.
+
+Planner / coordination modes come from the existing RoCoBench prompting stack:
+
+- `plan`: one centralized planner prompt produces one synchronized action plan.
+- `chat`: one centralized prompt asks for team discussion plus a final
+  synchronized action plan.
+- `dialog`: per-agent dialogue prompts run in turn until an agent emits the
+  final synchronized action plan.
+
+Execution / recovery modes come from CRIE-BT:
 
 - `open_loop`: plan once, execute once, no runtime feedback or replanning.
 - `direct_feedback`: send executor failure/progress feedback directly to the
@@ -15,11 +25,36 @@ The goal is to compare three planner-executor strategies under a common schema:
   behavior-tree runtime controller before deciding whether to continue, retry
   locally, explain, request human input, replan, or abort.
 
+The full intended matrix is:
+
+```text
+plan   + open_loop
+plan   + direct_feedback
+plan   + bt_mediated
+chat   + open_loop
+chat   + direct_feedback
+chat   + bt_mediated
+dialog + open_loop
+dialog + direct_feedback
+dialog + bt_mediated
+```
+
+Current implementation status:
+
+- implemented: `plan + open_loop`, `chat + open_loop`, `dialog + open_loop`
+  through `LegacyPromptPlanner`;
+- planned: all `direct_feedback` and `bt_mediated` combinations with
+  `plan/chat/dialog`;
+- still supported for deterministic smoke tests: `legacy_action`, which consumes
+  provided `EXECUTE` blocks and is not an LLM planner mode.
+
 ## Modules
 
 - `rocobench/crie_bt/types.py`: JSON-serializable dataclasses.
 - `rocobench/crie_bt/status.py`: execution, BT, decision, progress, and failure enums.
 - `rocobench/crie_bt/planner.py`: scripted planner and LLM adapter interface.
+- `rocobench/crie_bt/legacy_tasks.py`: adapters for existing RoCoBench
+  `EXECUTE` action plans and `plan/chat/dialog` prompters.
 - `rocobench/crie_bt/executor.py`: scripted, RRT-adapter, and learned-adapter executors.
 - `rocobench/crie_bt/progress.py`: robust manipulation progress monitor.
 - `rocobench/crie_bt/uncertainty.py`: neutral, heuristic, ensemble, and metadata uncertainty estimates.
@@ -41,6 +76,20 @@ Executor -> ProgressMonitor -> UncertaintyEstimator -> FailureDetector
 BT policy -> continue / retry / explain / human input / replan / abort
 ```
 
+For legacy RoCoBench tasks, `LegacyPromptPlanner` wraps the existing prompters:
+
+```text
+SingleThreadPrompter(plan/chat) or DialogPrompter(dialog)
+  -> raw EXECUTE / NAME / ACTION response
+  -> CRIE-BT CollaborativePlan with one LEGACY_ACTION_PLAN step
+  -> LegacyTaskRRTExecutorAdapter
+  -> LLMResponseParser
+  -> RRTSkillExecutor
+```
+
+This preserves the existing planner prompts and parser behavior while allowing
+CRIE-BT to supervise execution.
+
 ## Behavior Tree Policy
 
 The BT controller uses conservative local recovery:
@@ -55,6 +104,7 @@ The BT controller uses conservative local recovery:
 ## Integration Boundary
 
 The first implementation is fully testable with scripted planners and
-executors. RRT and learned executors are stable adapter interfaces with explicit
-TODOs for injection of existing RoCo RRT and ACT/Diffusion/LeRobot policy
-backends.
+executors. The simulator path now includes existing RoCo RRT execution and
+open-loop integration for `plan/chat/dialog`. The next implementation step is
+to let `direct_feedback` and `bt_mediated` call those same prompters during
+replanning while preserving prompt history and execution feedback.

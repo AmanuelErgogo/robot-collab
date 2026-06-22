@@ -27,9 +27,45 @@ This already supports the three ablation modes:
 - `bt_mediated`: failure goes through the BT controller, which may retry
   locally before replanning.
 
-The next work is to replace the scripted executor with simulator-backed and
-hardware-backed executors while keeping the same CRIE-BT planner, feedback,
-event, and evaluation schemas.
+The simulator adapters now target the existing RoCoBench tasks without defining
+new simulator tasks. PackGrocery has a typed CRIE-BT skill path:
+
+```text
+PackGroceryCRIEPlanner
+  -> one PUT_OBJECT_IN_CONTAINER subtask per unpacked PackGrocery item
+  -> PackGroceryRRTExecutorAdapter
+  -> PackGrocerySkillPlanValidator
+  -> RRTSkillCompiler
+  -> rocobench.skills.executor.RRTSkillExecutor
+  -> PackGroceryTask.step(SimAction)
+  -> PackGrocery postcondition, progress evidence, and fake uncertainty
+```
+
+The other task integrations reuse the legacy RoCoBench action-plan contract:
+
+```text
+LegacyActionPlanner
+  -> LEGACY_ACTION_PLAN(response)
+  -> LLMResponseParser
+  -> env.get_task_feedback(...)
+  -> rocobench.skills.executor.RRTSkillExecutor
+  -> task-specific env.step(SimAction)
+  -> env.get_reward_done(obs) for whole-task success
+```
+
+Supported simulator task IDs are:
+
+```text
+pack
+sort
+sweep
+sandwich
+rope
+cabinet
+```
+
+The next work is to harden simulator-backed and hardware-backed executors while
+keeping the same CRIE-BT planner, feedback, event, and evaluation schemas.
 
 ## Phase A: Simulator Integration
 
@@ -59,7 +95,9 @@ PUT_OBJECT_IN_CONTAINER(object, container)
 WAIT()
 ```
 
-Do not add new task-specific skills until the PackGrocery path is stable.
+For tasks without typed skill registries, use `LEGACY_ACTION_PLAN(response)`
+until a task-specific skill contract is justified by real planner or learned
+policy requirements.
 
 ### A2. Implement A Simulator RRT Executor Adapter
 
@@ -148,23 +186,21 @@ Add:
 scripts/run_crie_bt_sim.py
 ```
 
-Initial CLI:
+Current CLI:
 
 ```bash
 conda run --no-capture-output -n roco env MUJOCO_GL=egl \
   python scripts/run_crie_bt_sim.py \
     --task pack \
     --mode bt_mediated \
-    --executor rrt \
-    --planner scripted \
     --episodes 1 \
     --output artifacts/crie_bt/sim/pack_bt_rrt.jsonl
 ```
 
-The runner should:
+The runner:
 
 - instantiate the RoCo simulator task in the Python 3.8 runtime;
-- create the skill registry, parser, validator, compiler, and RRT executor;
+- create the typed PackGrocery stack or generic legacy action-plan stack;
 - use the existing CRIE-BT controller modes;
 - write the same JSONL schema as `scripts/run_crie_bt_eval.py`;
 - record artifacts for plan, feedback, BT events, simulator result, and video
@@ -483,13 +519,14 @@ For hardware, include safety and human-intervention metrics next to success.
 
 Simulator:
 
-- [ ] Add `rocobench/crie_bt/roco_adapters.py`.
-- [ ] Convert CRIE-BT `SkillCall` to RoCo `SkillPlan`.
-- [ ] Replace CRIE-BT RRT placeholder with injected simulator adapter.
-- [ ] Extend progress helpers for real RoCo `EnvState`.
-- [ ] Add `scripts/run_crie_bt_sim.py`.
-- [ ] Add simulator tests under `tests/crie_bt/test_sim_adapter.py`.
-- [ ] Run PackGrocery RRT smoke in the `roco` environment.
+- [x] Add `rocobench/crie_bt/roco_adapters.py`.
+- [x] Convert CRIE-BT `SkillCall` to RoCo `SkillPlan`.
+- [x] Replace CRIE-BT RRT placeholder with injected simulator adapters.
+- [x] Extend progress helpers for real RoCo `EnvState`.
+- [x] Add `scripts/run_crie_bt_sim.py`.
+- [x] Add simulator adapter tests under `tests/crie_bt/`.
+- [x] Run PackGrocery RRT smoke in the `roco` environment; the current motion
+  rollout completes internally but the PackGrocery postcondition remains false.
 
 Real robot:
 
@@ -504,8 +541,9 @@ Real robot:
 
 Docs and evaluation:
 
-- [ ] Extend `docs/crie_bt_api.md` with simulator adapter examples.
-- [ ] Extend `docs/crie_bt_evaluation.md` with simulator and hardware commands.
+- [x] Extend `docs/crie_bt_api.md` with simulator adapter examples.
+- [x] Extend `docs/crie_bt_evaluation.md` with simulator commands.
+- [ ] Extend evaluation docs with hardware commands once the real runner exists.
 - [ ] Add safety checklist for hardware runs.
 - [ ] Keep real robot logs free of private IPs, credentials, and raw images by
   default.
