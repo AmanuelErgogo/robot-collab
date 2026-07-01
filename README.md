@@ -1,16 +1,24 @@
-# RoCo: Dialectic Multi-Robot Collaboration with Large Language Models
-Codebase for paper: RoCo: Dialectic Multi-Robot Collaboration with Large Language Models
+# CRIE-BT: Multi-Robot Collaboration with LLM Planning and Learned Subtask Skills
 
-[Mandi Zhao](https://mandizhao.github.io), [Shreeya Jain](https://www.linkedin.com), [Shuran Song](https://www.cs.columbia.edu/~shurans/) 
+This repo implements multi-robot manipulation with LLM-driven dialog/planning,
+extended with:
 
-[Arxiv](https://arxiv.org/abs/2307.04738) | [Project Website](https://project-roco.github.io) 
+- **CRIE-BT**: a behavior-tree controller architecture for skill sequencing
+  and runtime feedback/replanning, evaluated via the sandwich-task benchmark
+  under [results/](results/) (see [docs/crie_bt_architecture.md](docs/crie_bt_architecture.md)
+  and [docs/crie_bt_experimental_design.md](docs/crie_bt_experimental_design.md)).
+- **CRIE-Bench**: a unified collect/train/test/skills CLI for learned
+  subtask skills — single-arm policies (ACT, BC-NN, Octo) that replace the
+  scripted RRT planner for primitives like PICK, PLACE, and STACK_ON (see
+  [docs/crie_bench.md](docs/crie_bench.md) and
+  [docs/learned_subtask_skills.md](docs/learned_subtask_skills.md)).
+- A bridge/dataset/training pipeline (Phases 0-8, see the Phase Guide below)
+  connecting the Python 3.8 MuJoCo simulator to modern LeRobot/Octo tooling.
 
- 
 <img src="method.jpeg" alt="method" width="800"/>
 
-
 ## Setup
-### RoCo simulator environment
+### Simulator environment
 ```
 conda create -n roco python=3.8 
 conda activate roco
@@ -69,9 +77,9 @@ The repo scripts already handle LeRobot import-path differences across released
 versions, so you do not need to normalize that manually.
 
 ## Phase Guide
-Use the classic RoCo setup above if you only want the original LLM-driven
-dialog/planning runs. For the full bridge, dataset, training, and learned-skill
-pipeline, use these runbooks:
+Use the classic setup above if you only want the LLM-driven dialog/planning
+runs. For the full bridge, dataset, training, and learned-skill pipeline,
+use these runbooks:
 
 - Phase 0 bridge setup and smoke demos: [docs/phase0_setup_install_test_demos.md](docs/phase0_setup_install_test_demos.md)
 - Phase 1 skill planning and execution: [docs/phase1_setup_install_test_demos.md](docs/phase1_setup_install_test_demos.md)
@@ -100,7 +108,7 @@ verified environment it terminated immediately with `ACTION_OUT_OF_BOUNDS`, so
 do not treat the Phase 4 debug rollout as manipulation success.
 
 ### Classic usage
-Run the original PackGrocery dialog loop from the Python 3.8 `roco`
+Run the original PackGrocery dialog loop from the Python 3.8 simulator
 environment:
 ```
 python run_dialog.py --task pack -llm gpt-4
@@ -220,20 +228,3 @@ The runner writes step logs under `data/<run_name>/...` and also emits a `lerobo
 - reward and success flags
 
 That export is intentionally lightweight, so it is easy to convert into a full LeRobot dataset pipeline later without coupling this repo directly to LeRobot internals.
-
-
-## Contact
-Please direct to [Mandi Zhao](https://mandizhao.github.io). 
-If you are interested in contributing or collaborating, please feel free to reach out! I'm more than happy to chat and brainstorm together. 
-
-## Cite
-```
-@misc{mandi2023roco,
-      title={RoCo: Dialectic Multi-Robot Collaboration with Large Language Models}, 
-      author={Zhao Mandi and Shreeya Jain and Shuran Song},
-      year={2023},
-      eprint={2307.04738},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
-}
-```
