@@ -7,7 +7,7 @@ from .events import RuntimeEventLog
 from .failure import FailureDetector
 from .progress import ProgressMonitor
 from .status import BTStatus, FailureCode, RuntimeDecision
-from .types import BTDecision, CollaborativePlan, ControllerResult, ExecutionContext, ExecutionFeedback, RuntimeEvent
+from .types import BTDecision, CollaborativePlan, ControllerResult, ExecutionContext, ExecutionFeedback, RuntimeEvent, SkillCall
 from .uncertainty import UncertaintyEstimator
 
 
@@ -140,6 +140,30 @@ class BehaviorTreeController(object):
             decision = BTDecision(RuntimeDecision.LOCAL_RETRY, feedback.failure.message, retry_count=retry_count)
             event = self.events.append("LOCAL_RETRY", feedback.failure.message, step_id=step_id, skill_call=feedback.skill_call, decision=decision)
             return ControllerResult(BTStatus.RUNNING, decision, feedback, [event], self.completed_subtasks, self.failed_subtasks)
+
+        # RRT-aware local recovery: when an RRT timeout occurred on a simultaneous
+        # multi-agent action, the executor embeds a pre-computed serialized action in
+        # raw_info["recovery_response"].  Retry once using that action before escalating
+        # to the LLM planner.
+        if code == FailureCode.TIMEOUT and retry_count < self.max_retries:
+            recovery_response = dict(feedback.raw_info or {}).get("recovery_response")
+            if recovery_response and self.current_node is not None:
+                retry_count += 1
+                self.retry_counts[step_id] = retry_count
+                self.executor.stop()
+                original = self.current_node.skill_call
+                recovery_skill_call = SkillCall(
+                    agent=original.agent,
+                    skill_name=original.skill_name,
+                    arguments=dict(original.arguments, response=recovery_response),
+                    instruction="RRT-aware serialized recovery (retry {}).".format(retry_count),
+                )
+                self.current_node.skill_call = recovery_skill_call
+                self.current_node.reset_started()
+                msg = "RRT timeout on simultaneous actions — retrying with serialized execution."
+                decision = BTDecision(RuntimeDecision.LOCAL_RETRY, msg, retry_count=retry_count)
+                event = self.events.append("LOCAL_RETRY", msg, step_id=step_id, skill_call=feedback.skill_call, decision=decision)
+                return ControllerResult(BTStatus.RUNNING, decision, feedback, [event], self.completed_subtasks, self.failed_subtasks)
 
         self.failed_subtasks += 1
         if code == FailureCode.TIMEOUT:

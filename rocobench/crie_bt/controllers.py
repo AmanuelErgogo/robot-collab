@@ -72,6 +72,39 @@ class BaseArchitectureController(object):
             return env.get_observation()
         return {} if fallback is None else fallback
 
+    def _task_done(self, env, observation: Any) -> bool:
+        """Return True when the environment signals the full task is complete.
+
+        Falls back to True when the env has no get_reward_done() method so that
+        controllers behave correctly with simple test stubs (where "plan done"
+        is equivalent to "task done").
+        """
+        if not hasattr(env, "get_reward_done"):
+            return True
+        if observation is None:
+            return False
+        try:
+            return bool(env.get_reward_done(observation)[1])
+        except Exception:
+            return True
+
+    def _replan(
+        self,
+        log: Dict[str, Any],
+        task_goal: str,
+        observation: Any,
+        feedback: Optional[ExecutionFeedback] = None,
+        context: Optional[ExecutionContext] = None,
+    ) -> Optional[CollaborativePlan]:
+        """Call the planner and return the new plan, or None on planner error."""
+        log["planner_calls"] += 1
+        try:
+            return self.planner.generate_plan(task_goal, observation, feedback=feedback, context=context)
+        except Exception as exc:
+            log["failure_counts"]["PLANNER_ERROR"] = int(log["failure_counts"].get("PLANNER_ERROR", 0)) + 1
+            log["explanations"].append("Planner failed: {}".format(exc))
+            return None
+
 
 class OpenLoopController(BaseArchitectureController):
     mode = ExecutionMode.OPEN_LOOP
@@ -80,6 +113,7 @@ class OpenLoopController(BaseArchitectureController):
         log = self._empty_log(self.mode, task_goal)
         context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=0)
         observation = env.reset() if hasattr(env, "reset") else {}
+        self.planner.reset_episode()
         try:
             plan = self.planner.generate_plan(task_goal, observation, context=context)
         except Exception as exc:
@@ -111,21 +145,48 @@ class OpenLoopController(BaseArchitectureController):
 
 
 class DirectFeedbackController(BaseArchitectureController):
+    """Multi-step reactive controller.
+
+    Each call to the planner generates exactly one action (one EXECUTE block via
+    LegacyPromptPlanner).  After a successful action the controller checks whether
+    the task is done via env.get_reward_done(); if not it asks the planner for the
+    next action, passing the updated observation so the LLM can use round history.
+    On failure the planner is called immediately for a corrective action.
+    """
+
     mode = ExecutionMode.DIRECT_FEEDBACK
 
     def run_episode(self, env, task_goal: str, max_steps: int) -> Dict[str, Any]:
         log = self._empty_log(self.mode, task_goal)
-        context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=0)
+        context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=self.max_retries)
         observation = env.reset() if hasattr(env, "reset") else {}
-        feedback = None  # type: Optional[ExecutionFeedback]
-        plan = self.planner.generate_plan(task_goal, observation, context=context)
-        log["planner_calls"] = 1
+
+        # Clear any state left over from a previous episode.
+        self.planner.reset_episode()
+
+        plan = self._replan(log, task_goal, observation, context=context)
+        if plan is None:
+            return log  # planner error on first call
         self.executor.reset(env, context)
         step_index = 0
+        consecutive_failures = 0
+
         while log["steps"] < max_steps:
             if step_index >= len(plan.steps):
-                log["success"] = True
-                return log
+                # All steps in the current plan executed successfully.
+                if self._task_done(env, observation):
+                    log["success"] = True
+                    return log
+                # Task not complete yet: notify the planner the last action
+                # succeeded and ask for the next action.
+                self.planner.notify_result(True)
+                log["replans"] += 1
+                plan = self._replan(log, task_goal, observation, context=context)
+                if plan is None:
+                    return log
+                step_index = 0
+                continue
+
             step = plan.steps[step_index]
             self.executor.start_skill(step.skill_call, observation)
             feedback = None
@@ -138,27 +199,57 @@ class DirectFeedbackController(BaseArchitectureController):
             self.executor.stop()
             log["subtask_results"].append(feedback.to_dict() if feedback is not None else {"step_id": step.step_id})
             self._record_failure(log, feedback)
+
             if feedback is not None and feedback.status == BTStatus.SUCCESS and not feedback.failure.is_failure:
                 log["completed_subtasks"] += 1
                 step_index += 1
+                consecutive_failures = 0
                 continue
+
+            # Step failed: count consecutive failures and enforce retry cap before
+            # asking the planner to generate a new plan.
             log["failed_subtasks"] += 1
+            consecutive_failures += 1
+            if consecutive_failures > self.max_retries:
+                log["explanations"].append(
+                    "Executor failed {} consecutive time(s) — max_retries={} exceeded. "
+                    "Terminating episode.".format(consecutive_failures, self.max_retries)
+                )
+                return log
             log["replans"] += 1
-            log["planner_calls"] += 1
-            plan = self.planner.generate_plan(task_goal, observation, feedback=feedback, context=context)
+            self.planner.notify_result(False)
+            plan = self._replan(log, task_goal, observation, feedback=feedback, context=context)
+            if plan is None:
+                return log
             step_index = 0
+
         return log
 
 
 class BTMediatedController(BaseArchitectureController):
+    """Multi-step BT-mediated controller.
+
+    Each plan produced by the planner contains one action step.  When the BT
+    reports SUCCESS (all steps done), the controller checks whether the task is
+    complete.  If not, it requests the next action from the planner (notifying it
+    that the last action succeeded so the LLM history is updated) and resets the
+    BT with the new plan.  Failure handling follows the BT's decision: local retry,
+    replan, or hard stop.
+    """
+
     mode = ExecutionMode.BT_MEDIATED
 
     def run_episode(self, env, task_goal: str, max_steps: int) -> Dict[str, Any]:
         log = self._empty_log(self.mode, task_goal)
         context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=self.max_retries)
         observation = env.reset() if hasattr(env, "reset") else {}
-        plan = self.planner.generate_plan(task_goal, observation, context=context)
-        log["planner_calls"] = 1
+
+        self.planner.reset_episode()
+
+        plan = self._replan(log, task_goal, observation, context=context)
+        if plan is None:
+            return log
+
         bt = BehaviorTreeController(
             self.executor,
             progress_monitor=ProgressMonitor(env=env, max_steps=max_steps),
@@ -168,6 +259,7 @@ class BTMediatedController(BaseArchitectureController):
         )
         bt.reset(plan, env, observation)
         seen_events = 0
+
         while log["steps"] < max_steps:
             result = bt.tick(observation)
             log["steps"] += 1
@@ -184,20 +276,37 @@ class BTMediatedController(BaseArchitectureController):
             if result.feedback is not None:
                 log["subtask_results"].append(result.feedback.to_dict())
             observation = self._get_observation(env, result.feedback, observation)
+
             if result.status == BTStatus.SUCCESS:
                 log["completed_subtasks"] = result.completed_subtasks
-                log["success"] = True
-                return log
+                # All plan steps succeeded.  Check whether the task itself is done.
+                if self._task_done(env, observation):
+                    log["success"] = True
+                    return log
+                # Task not complete: notify the planner that the last action
+                # succeeded and ask for the next action.
+                self.planner.notify_result(True)
+                log["replans"] += 1
+                plan = self._replan(log, task_goal, observation, context=context)
+                if plan is None:
+                    return log
+                bt.reset(plan, env, observation)
+                seen_events = 0
+                continue
+
             if result.status == BTStatus.FAILURE and result.decision.decision == RuntimeDecision.REQUEST_REPLAN:
                 log["failed_subtasks"] = result.failed_subtasks
                 log["replans"] += 1
-                log["planner_calls"] += 1
-                plan = self.planner.generate_plan(task_goal, observation, feedback=result.feedback, context=context)
+                self.planner.notify_result(False)
+                plan = self._replan(log, task_goal, observation, feedback=result.feedback, context=context)
+                if plan is None:
+                    return log
                 bt.reset(plan, env, observation)
                 seen_events = 0
             elif result.status == BTStatus.FAILURE:
                 log["failed_subtasks"] = result.failed_subtasks
                 return log
+
         return log
 
 

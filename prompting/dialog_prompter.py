@@ -109,8 +109,11 @@ class DialogPrompter:
 
         chat_history = "[Previous Chat]\n" + "\n".join(chat_history) if len(chat_history) > 0 else ""
             
-        system_prompt = f"{action_desp}\n{round_history}\n{execute_feedback}{agent_prompt}\n{chat_history}\n" 
-        
+        system_prompt = f"{action_desp}\n{round_history}\n{execute_feedback}{agent_prompt}\n{chat_history}\n"
+
+        if getattr(self, '_multistep_hint', None):
+            system_prompt += str(self._multistep_hint) + "\n"
+
         if self.use_feedback and len(feedback_history) > 0:
             system_prompt += "\n".join(feedback_history)
         

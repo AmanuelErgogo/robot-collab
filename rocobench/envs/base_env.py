@@ -45,13 +45,15 @@ class ObjectState:
     @property
     def top_height(self) -> float:
         """ max of all site heights """
-        heights = [site.xpos[2] for site in self.sites]
+        sites_iter = self.sites.values() if isinstance(self.sites, dict) else self.sites
+        heights = [site.xpos[2] for site in sites_iter]
         return max(heights)
-    
+
     @property
     def bottom_height(self) -> float:
         """ min of all site heights """
-        heights = [site.xpos[2] for site in self.sites]
+        sites_iter = self.sites.values() if isinstance(self.sites, dict) else self.sites
+        heights = [site.xpos[2] for site in sites_iter]
         return min(heights)
 
 @dataclasses.dataclass(frozen=True)
@@ -485,29 +487,31 @@ class MujocoSimEnv:
         data = self.data 
         ret = defaultdict(set)
         for geom1_id, geom2_id in zip(data.contact.geom1, data.contact.geom2):
-            body1 = model.body(model.geom(geom1_id).bodyid) 
-            body2 = model.body(model.geom(geom2_id).bodyid)  
-            
-            obj1 = model.body(body1.rootid)
-            obj2 = model.body(body2.rootid)
+            body1 = model.body(model.geom(geom1_id).bodyid.item())
+            body2 = model.body(model.geom(geom2_id).bodyid.item())
+
+            obj1 = model.body(body1.rootid.item())
+            obj2 = model.body(body2.rootid.item())
 
             ret[obj1.name].add(obj2.name)
             ret[obj1.name].add(body2.name)
 
             ret[obj2.name].add(obj1.name)
             ret[obj2.name].add(body1.name) 
-        # also check eq_active
-        active = model.eq_active 
+        # also check eq_active (mujoco 3.x renamed eq_active -> eq_active0)
+        active = getattr(model, "eq_active", None)
+        if active is None:
+            active = getattr(model, "eq_active0", [])
         nbody = model.nbody
         for i in range(len(active)):
             if active[i]:
                 if model.eq_obj1id[i] not in range(nbody) or model.eq_obj2id[i] not in range(nbody):
                     # NOTE: special case for the rope composite body
-                    continue                 
-                body1 = model.body(model.eq_obj1id[i])
-                body2 = model.body(model.eq_obj2id[i])
-                obj1 = model.body(body1.rootid)
-                obj2 = model.body(body2.rootid)
+                    continue
+                body1 = model.body(int(model.eq_obj1id[i]))
+                body2 = model.body(int(model.eq_obj2id[i]))
+                obj1 = model.body(body1.rootid.item())
+                obj2 = model.body(body2.rootid.item())
                 ret[obj1.name].add(obj2.name)
                 ret[obj1.name].add(body2.name)
                 ret[obj2.name].add(obj1.name)
@@ -655,7 +659,8 @@ class MujocoSimEnv:
             # _dict = self.convert_named_data_to_dict(attr_name)
             # kwargs.update(_dict)
             kwargs[attr_name] = deepcopy(getattr(self.ndata, attr_name)) # NOTE: use deepcopy!!
-        kwargs['eq_active'] = deepcopy(self.physics.model.eq_active)
+        _eq_attr = "eq_active" if hasattr(self.physics.model, "eq_active") else "eq_active0"
+        kwargs['eq_active'] = deepcopy(getattr(self.physics.model, _eq_attr))
         kwargs['body_pos'] = deepcopy(self.physics.model.body_pos)
         kwargs['body_quat'] = deepcopy(self.physics.model.body_quat)
         save_data = SimSaveData(**kwargs)
@@ -668,7 +673,8 @@ class MujocoSimEnv:
         self.physics.data.qpos[:] = qpos
         self.physics.data.qvel[:] = data.qvel
         self.physics.data.ctrl[:] = data.ctrl
-        self.physics.model.eq_active[:] = eq_active
+        _eq_attr = "eq_active" if hasattr(self.physics.model, "eq_active") else "eq_active0"
+        getattr(self.physics.model, _eq_attr)[:] = eq_active
         self.physics.model.body_pos[:] = data.body_pos
         self.physics.model.body_quat[:] = data.body_quat
         self.physics.forward() 
@@ -690,7 +696,8 @@ class MujocoSimEnv:
             self.data.ctrl[ctrl_idxs] = ctrl_vals 
 
             if eq_active_idxs is not None and len(eq_active_idxs) > 0:
-                self.physics.model.eq_active[eq_active_idxs] = eq_active_vals
+                _eq_attr = "eq_active" if hasattr(self.physics.model, "eq_active") else "eq_active0"
+                getattr(self.physics.model, _eq_attr)[eq_active_idxs] = eq_active_vals
             self.physics.step() 
             if step % self.render_freq == 0:
                 self.render_all_cameras()
@@ -836,5 +843,4 @@ class MujocoSimEnv:
 
     
     
-
 

@@ -26,6 +26,21 @@ class BasePlanner(ABC):
     ) -> CollaborativePlan:
         raise NotImplementedError
 
+    def notify_result(self, success: bool) -> None:
+        """Called by the controller after executing the plan from the last generate_plan() call.
+
+        Planners that maintain history across rounds (e.g. LegacyPromptPlanner) use
+        this to record whether the action succeeded so the next LLM call sees an
+        accurate round history.  The default implementation is a no-op.
+        """
+
+    def reset_episode(self) -> None:
+        """Called by the controller at the start of each episode.
+
+        Clears per-episode state (round history, failed-plan list, pending results)
+        so the planner starts fresh.  The default implementation is a no-op.
+        """
+
 
 class ScriptedPlanner(BasePlanner):
     """Deterministic planner for tests, debugging, and offline ablations."""

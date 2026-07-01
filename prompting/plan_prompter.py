@@ -157,7 +157,10 @@ class SingleThreadPrompter:
             feedback_prompt = "Previous Plans Require Improvement:\n"
             feedback_prompt += "\n".join(plan_feedbacks) + "\n"
             full_prompt += feedback_prompt
-        
+
+        if getattr(self, '_multistep_hint', None):
+            full_prompt += str(self._multistep_hint) + "\n"
+
         if self.comm_mode == "plan":
             comm_prompt = get_plan_prompt(self.env)
         elif self.comm_mode == "chat":

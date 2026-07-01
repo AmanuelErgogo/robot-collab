@@ -21,6 +21,7 @@ def main():
                 system_instruction=payload.get("system_instruction"),
                 max_output_tokens=payload["max_output_tokens"],
                 temperature=payload["temperature"],
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
         usage_metadata = response.usage_metadata

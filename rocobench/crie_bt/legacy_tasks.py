@@ -273,6 +273,16 @@ def _augment_obs_with_feedback(observation: Any, feedback: Optional[Any]) -> Any
         return observation
 
 
+_MULTISTEP_HINT = (
+    "Generate a COMPLETE PLAN for the full task — provide ALL remaining steps as "
+    "sequential EXECUTE blocks (one per step). Example for two steps:\n"
+    "EXECUTE\nNAME Alice ACTION PICK bread PATH [...]\nNAME Bob ACTION WAIT\n"
+    "EXECUTE\nNAME Alice ACTION WAIT\nNAME Bob ACTION PICK meat PATH [...]\n"
+    "Include every step until the task is fully done. "
+    "Only assign WAIT to an agent that truly has nothing to do in that step."
+)
+
+
 class LegacyPromptPlanner(BasePlanner):
     """Planner adapter around existing RoCoBench plan/chat/dialog prompters."""
 
@@ -283,6 +293,7 @@ class LegacyPromptPlanner(BasePlanner):
         planner_mode: str,
         agent_names: Sequence[str],
         save_dir: Optional[str] = None,
+        plan_horizon: int = 1,
     ) -> None:
         if planner_mode not in ("plan", "chat", "dialog"):
             raise ValueError("planner_mode must be one of plan, chat, dialog.")
@@ -291,7 +302,11 @@ class LegacyPromptPlanner(BasePlanner):
         self.planner_mode = planner_mode
         self.agent_names = list(agent_names)
         self.save_dir = save_dir
+        self.plan_horizon = max(1, int(plan_horizon))
         self.calls = 0
+        # Pending state for notify_result(): set after each successful generate_plan().
+        self._pending_observation = None  # raw observation used for the last plan
+        self._pending_parsed_plan = None  # action description string from the last plan
 
     def generate_plan(
         self,
@@ -308,44 +323,137 @@ class LegacyPromptPlanner(BasePlanner):
             os.makedirs(save_path, exist_ok=True)
         # Augment observation with failure context for replanning rounds.
         obs_for_prompter = _augment_obs_with_feedback(observation, feedback)
-        ready, llm_plans, plan_feedbacks, raw_outputs = self.prompter.prompt_one_round(obs_for_prompter, save_path=save_path)
-        if not ready:
-            raise RuntimeError("{} planner did not produce an executable RoCoBench plan.".format(self.planner_mode))
-        response = legacy_response_from_prompt_outputs(llm_plans, raw_outputs)
-        if not response:
-            raise RuntimeError("{} planner output did not contain an EXECUTE block.".format(self.planner_mode))
-        skill_call = SkillCall(
-            agent="ALL",
-            skill_name=LEGACY_ACTION_PLAN,
-            arguments={"task": self.task_id, "response": response},
-            instruction="Execute {} planner output for {}.".format(self.planner_mode, self.task_id),
-        )
-        return CollaborativePlan(
-            steps=[
+
+        # Surface the execution failure reason to the prompter so the LLM sees
+        # WHY the previous plan failed (not just which actions were attempted).
+        # We inject it temporarily into failed_plans and remove it afterwards so
+        # it does not accumulate across replanning rounds.
+        is_failure_replan = feedback is not None and feedback.failure.is_failure
+        _injected_failure_msg = None
+        if (
+            is_failure_replan
+            and hasattr(self.prompter, "failed_plans")
+        ):
+            msg = feedback.failure.message or getattr(feedback, "message", "") or ""
+            if msg:
+                _injected_failure_msg = "[Execution failure reason]: {}".format(msg)
+                self.prompter.failed_plans.append(_injected_failure_msg)
+
+        # Inject multi-step planning instruction on fresh plans (not failure replans).
+        _injected_multistep = self.plan_horizon > 1 and not is_failure_replan
+        if _injected_multistep:
+            self.prompter._multistep_hint = _MULTISTEP_HINT
+
+        try:
+            ready, llm_plans, plan_feedbacks, raw_outputs = self.prompter.prompt_one_round(obs_for_prompter, save_path=save_path)
+        finally:
+            if _injected_failure_msg is not None and hasattr(self.prompter, "failed_plans"):
+                try:
+                    self.prompter.failed_plans.remove(_injected_failure_msg)
+                except ValueError:
+                    pass
+            if _injected_multistep:
+                self.prompter._multistep_hint = None
+
+        if _injected_multistep:
+            # Extract all EXECUTE blocks from the raw LLM output.
+            raw_text = str((raw_outputs or [""])[0])
+            responses = [r for r in split_legacy_responses(raw_text) if r.startswith("EXECUTE")]
+            if not responses:
+                # Fallback: use the single-step extraction path.
+                single = legacy_response_from_prompt_outputs(llm_plans, raw_outputs)
+                responses = [single] if single else []
+            if not responses:
+                raise RuntimeError("{} multi-step planner output contained no EXECUTE blocks.".format(self.planner_mode))
+        else:
+            if not ready:
+                raise RuntimeError("{} planner did not produce an executable RoCoBench plan.".format(self.planner_mode))
+            response = legacy_response_from_prompt_outputs(llm_plans, raw_outputs)
+            if not response:
+                raise RuntimeError("{} planner output did not contain an EXECUTE block.".format(self.planner_mode))
+            responses = [response]
+
+        # Store pending state for notify_result(). Only set after all checks pass so
+        # an exception above leaves _pending_* unchanged (no spurious history update).
+        self._pending_observation = observation
+        if len(responses) == 1 and llm_plans and hasattr(llm_plans[0], "get_action_desp"):
+            self._pending_parsed_plan = llm_plans[0].get_action_desp()
+        else:
+            self._pending_parsed_plan = "\n".join(responses)
+
+        steps = []
+        for i, resp in enumerate(responses):
+            skill_call = SkillCall(
+                agent="ALL",
+                skill_name=LEGACY_ACTION_PLAN,
+                arguments={"task": self.task_id, "response": resp},
+                instruction="Execute {} planner step {}/{} for {}.".format(
+                    self.planner_mode, i + 1, len(responses), self.task_id
+                ),
+            )
+            steps.append(
                 PlanStep(
-                    step_id="{}_{}_planner_step_{:03d}".format(self.task_id, self.planner_mode, self.calls),
+                    step_id="{}_{}_planner_step_{:03d}_{:03d}".format(
+                        self.task_id, self.planner_mode, self.calls, i + 1
+                    ),
                     skill_call=skill_call,
                     role_assignment={agent_name: "legacy_action_agent" for agent_name in self.agent_names},
-                    explanation="Execute one {} planner-generated RoCoBench action plan.".format(self.planner_mode),
+                    explanation="Execute {} planner-generated step {}/{}.".format(
+                        self.planner_mode, i + 1, len(responses)
+                    ),
                     metadata={
-                        "response": response,
+                        "response": resp,
                         "task": self.task_id,
                         "planner_mode": self.planner_mode,
-                        "plan_feedbacks": list(plan_feedbacks or []),
+                        "plan_feedbacks": list(plan_feedbacks or []) if i == 0 else [],
                         "save_path": save_path,
+                        "step_index": i,
+                        "total_steps": len(responses),
                     },
                 )
-            ],
+            )
+        return CollaborativePlan(
+            steps=steps,
             plan_id="{}_{}_planner_plan_{:03d}".format(self.task_id, self.planner_mode, self.calls),
             task_goal=task_goal,
             metadata={
                 "task": self.task_id,
                 "planner": self.planner_mode,
-                "response": response,
+                "responses": responses,
                 "plan_feedbacks": list(plan_feedbacks or []),
                 "save_path": save_path,
+                "multistep": len(responses) > 1,
             },
         )
+
+
+    def notify_result(self, success: bool) -> None:
+        """Record whether the last executed plan succeeded.
+
+        Calls ``prompter.post_execute_update()`` so the underlying prompter can
+        append a successful round to its history (or add a failed plan to its
+        retry list).  Cleared after the call so a second notify_result() for the
+        same plan is a no-op.
+        """
+        if self._pending_parsed_plan is None:
+            return
+        obs_desp = ""
+        if self._pending_observation is not None:
+            try:
+                obs_desp = self.prompter.env.describe_obs(self._pending_observation)
+            except Exception:
+                obs_desp = ""
+        if hasattr(self.prompter, "post_execute_update"):
+            self.prompter.post_execute_update(obs_desp, bool(success), self._pending_parsed_plan)
+        self._pending_observation = None
+        self._pending_parsed_plan = None
+
+    def reset_episode(self) -> None:
+        """Clear all per-episode prompter state before a new episode begins."""
+        if hasattr(self.prompter, "post_episode_update"):
+            self.prompter.post_episode_update()
+        self._pending_observation = None
+        self._pending_parsed_plan = None
 
 
 class FakeLegacyUncertaintyReporter(object):
@@ -453,13 +561,20 @@ class LegacyTaskRRTExecutorAdapter(BaseSkillExecutor):
         if result.success:
             return self._success_feedback(skill_call, result, task_done)
         code = self._failure_code_from_execution(result)
-        return self._failure_feedback(
-            skill_call,
-            code,
-            result.reason or "Legacy task RRT execution failed.",
-            {"execution_result": result.to_dict(), "task_done": bool(task_done), "response": response},
-            result=result,
+        recovery_response = (
+            self._build_serialized_recovery(response)
+            if code == FailureCode.TIMEOUT else None
         )
+        message = self._make_rrt_failure_message(result.reason or "", response)
+        evidence = {
+            "execution_result": result.to_dict(),
+            "task_done": bool(task_done),
+            "response": response,
+            "rrt_reason": result.reason or "",
+        }
+        if recovery_response is not None:
+            evidence["recovery_response"] = recovery_response
+        return self._failure_feedback(skill_call, code, message, evidence, result=result)
 
     def _build_roco_plan(self, response: str, path_plans: Iterable[Any]) -> RoCoSkillPlan:
         calls = []
@@ -570,6 +685,73 @@ class LegacyTaskRRTExecutorAdapter(BaseSkillExecutor):
         if result.status in (SkillExecutionStatus.INVALID_PLAN, SkillExecutionStatus.NOT_PREPARED):
             return FailureCode.POSTCONDITION_FAILED
         return FailureCode.UNKNOWN
+
+    def _parse_execute_block(self, response: str) -> Dict[str, str]:
+        """Return {agent: action_text} for each NAME/ACTION pair in the EXECUTE block."""
+        import re
+        actions = {}
+        for m in re.finditer(r"NAME\s+(\w+)\s+ACTION\s+(.+?)(?=NAME\s|\Z)", response, re.DOTALL):
+            agent = m.group(1).strip()
+            action = m.group(2).strip().split("\n")[0].strip()
+            actions[agent] = action
+        return actions
+
+    def _make_rrt_failure_message(self, reason: str, response: str) -> str:
+        """Return a natural-language failure message the LLM planner can reason about."""
+        reason = reason or ""
+        reason_lower = reason.lower()
+        if "timeout" in reason_lower or "Timeout" in reason:
+            failure_type = "motion planning timeout — RRT could not find a collision-free path within the time limit"
+            hint = (
+                "If multiple agents are moving simultaneously, try serializing: "
+                "have one agent WAIT while the other executes first."
+            )
+        elif "collision" in reason_lower:
+            failure_type = "motion planning collision — the planned path causes an arm collision"
+            hint = "Serialize the actions: one agent WAITs while the other moves."
+        elif "ik" in reason_lower or "reachable" in reason_lower or "reach" in reason_lower:
+            failure_type = "inverse kinematics failure — the target pose is unreachable"
+            hint = "Choose a different target or add an intermediate waypoint."
+        else:
+            failure_type = "motion planning failure"
+            hint = "Consider serializing agent actions or choosing a different target."
+
+        agent_actions = self._parse_execute_block(response)
+        active = [
+            "{} ({})".format(a, act)
+            for a, act in agent_actions.items()
+            if not act.upper().startswith("WAIT")
+        ]
+        parts = ["Physical execution failed: {}.".format(failure_type)]
+        if active:
+            parts.append("Attempted simultaneously: {}.".format(", ".join(active)))
+        parts.append(hint)
+        return " ".join(parts)
+
+    def _build_serialized_recovery(self, response: str) -> Optional[str]:
+        """Return a new EXECUTE block where the first active agent acts and all others WAIT.
+
+        Returns None when there is only one active agent (already serialized) or no
+        agents at all.  The returned response can be used as a BT local-retry
+        action without invoking the LLM again.
+        """
+        import re as _re
+        agent_actions = self._parse_execute_block(response)
+        active = [(a, act) for a, act in agent_actions.items() if not act.upper().startswith("WAIT")]
+        if len(active) <= 1:
+            return None
+        first_agent = active[0][0]
+        lines = ["EXECUTE"]
+        for m in _re.finditer(
+            r"NAME\s+(\w+)\s+ACTION\s+(.+?)(?=NAME\s|\Z)", response, _re.DOTALL
+        ):
+            agent = m.group(1).strip()
+            full_action = m.group(2).strip().split("\n")[0].strip()
+            if agent == first_agent:
+                lines.append("NAME {} ACTION {}".format(agent, full_action))
+            else:
+                lines.append("NAME {} ACTION WAIT".format(agent))
+        return "\n".join(lines)
 
 
 def supported_uncertainty_profiles() -> Tuple[str, ...]:

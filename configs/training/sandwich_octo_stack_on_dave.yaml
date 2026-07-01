@@ -1,0 +1,35 @@
+# CRIE-Bench: Octo fine-tuning config for sandwich / STACK_ON / Dave
+# Usage:
+#   python -m crie_bench train \
+#       --task sandwich --skill STACK_ON --agent Dave --model octo \
+#       --num-steps 20000 --batch-size 128
+
+preset: sandwich_stack_on_dave   # see integrations/octo_roco/training/config.py
+
+name: octo_sandwich_stack_on_dave
+
+task_id: sandwich
+skill_id: STACK_ON
+agent_name: Dave
+
+pretrained_path: "hf_hub:rail-berkeley/octo-small"
+window_size: 2
+
+# Dataset
+data_root: data/subtask_demos
+val_fraction: 0.1
+action_dim: 21        # humanoid: 21 actuated joints
+state_dim: 21
+language_instruction: "STACK_ON(target=ingredient)"
+
+# Training — slightly longer for the harder stacking skill
+num_steps: 30000
+batch_size: 128
+chunk_size: 10
+save_interval: 2000
+eval_interval: 2000
+lr: 3.0e-4
+seed: 42
+
+frozen_keys: "(?!.*hf_token).*vit.*"
+output_dir: checkpoints/octo

@@ -157,7 +157,10 @@ class PlannedPathPolicy:
                         print(obj_name)
                         breakpoint()
                     
-                    weld_id = physics.named.model.eq_active._convert_key(weld_name)
+                    _ea = getattr(physics.named.model, "eq_active", None)
+                    if _ea is None:
+                        _ea = getattr(physics.named.model, "eq_active0", None)
+                    weld_id = _ea._convert_key(weld_name)
                     tograsp[robot_name] = dict(
                         obj_name=obj_name,
                         grasp_site_name=body_name,
@@ -184,8 +187,11 @@ class PlannedPathPolicy:
                     weld_body_name = self.robots[robot_name].weld_body_name
                     weld_name = f"{obj_site_name}_{weld_body_name}" # e.g. apple_top_rhand
                     try:
-                        enabled = physics.named.model.eq_active[weld_name] 
-                        weld_id = physics.named.model.eq_active._convert_key(weld_name)
+                        _ea = getattr(physics.named.model, "eq_active", None)
+                        if _ea is None:
+                            _ea = getattr(physics.named.model, "eq_active0", None)
+                        enabled = _ea[weld_name]
+                        weld_id = _ea._convert_key(weld_name)
                         tograsp[robot_name]["weld_id"] = weld_id # change to weld id!
                         tograsp[robot_name]["weld_name"] = weld_name
                     except KeyError:
@@ -330,21 +336,39 @@ class PlannedPathPolicy:
  
                 obj_site = obj_info["grasp_site_name"]
                 site_xpos = physics.data.site(obj_site).xpos
+                robot = self.robots[robot_name]
+                is_suction = robot.grasp_actuator in ("adhere_gripper", "adhere_hand")
+
+                # Suction grippers: weld fires freely (suction contact is not position-sensitive).
+                # Finger grippers (robotiq, panda): weld only fires when the EE is within 2 cm of
+                # the grasp site so the fingers are visually closed around the object on video.
+                # TODO (Option B): remove use_weld for finger grippers entirely and rely on
+                # MuJoCo friction contacts (friction=0.7 on robotiq pads). This gives true
+                # physics-based grasping but can be unstable during fast motions.
+                FINGER_WELD_THRESHOLD = 0.02  # metres
+                SUCTION_WELD_THRESHOLD = 0.10  # metres — suction doesn't need tight alignment
+
+                weld_threshold = SUCTION_WELD_THRESHOLD if is_suction else FINGER_WELD_THRESHOLD
+
+                weld_blocked = False
                 if grasp_val > 0:
                     pose = target_ee_poses[robot_name]
-                    robot_ee_pos = pose.position 
+                    robot_ee_pos = pose.position
                     dist = np.linalg.norm(site_xpos - robot_ee_pos)
-                    if dist > 0.1:
-                        print(f"WARNING: robot {robot_name} end effector distance: {dist} is too far from object {obj_info['obj_name']}")   
-            
-                grasp_idxs.append(
-                    self.robots[robot_name].grasp_idx
-                )  
-                grasp_ctrl_val = self.robots[robot_name].get_grasp_ctrl_val(grasp=(grasp_val > 0))
+                    if dist > weld_threshold:
+                        gripper_type = "suction" if is_suction else "finger"
+                        print(
+                            f"{'WARNING' if is_suction else 'BLOCKED'}: {robot_name} ({gripper_type}) "
+                            f"EE dist {dist:.3f} m > {weld_threshold:.3f} m threshold "
+                            f"for object {obj_info['obj_name']} — weld {'skipped' if not is_suction else 'fired anyway'}"
+                        )
+                        if not is_suction:
+                            weld_blocked = True
+
+                grasp_idxs.append(robot.grasp_idx)
+                grasp_ctrl_val = robot.get_grasp_ctrl_val(grasp=(grasp_val > 0))
                 grasp_vals.append(grasp_ctrl_val)
-                # print(f'seting grasp of robot {robot_name} to {grasp_val}')
-                if self.use_weld and obj_info.get("weld_id", None) is not None:
-                    # both adhesion and eq_active is turned on
+                if self.use_weld and not weld_blocked and obj_info.get("weld_id", None) is not None:
                     weld_id = obj_info["weld_id"]
                     weld_name = obj_info["weld_name"]
                     eq_active_idxs.append(weld_id)
@@ -457,5 +481,4 @@ class PlannedPathPolicy:
             assert len(self.action_buffer) != 0, "action buffer is empty, cal plan_qpos first"
         action = self.action_buffer[self.action_idx]
         self.action_idx += 1
-        return action 
- 
+        return action

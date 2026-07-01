@@ -559,6 +559,330 @@ class TestUncertaintyMetadata:
 # Task spec and adapter metadata
 # ===========================================================================
 
+# ===========================================================================
+# Multi-step feedback loop (direct_feedback and bt_mediated with LegacyPromptPlanner)
+# ===========================================================================
+
+class _HistoryTrackingPrompter:
+    """Records post_execute_update / post_episode_update calls for assertions."""
+
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self._idx = 0
+        self.round_history = []
+        self.failed_plans = []
+        self.latest_chat_history = []
+        self.calls = []  # (obs, save_path) per prompt_one_round call
+        self.updates = []  # (obs_desp, success, parsed_plan) per post_execute_update call
+        self.episode_resets = 0
+
+    def prompt_one_round(self, obs, save_path=""):
+        self.calls.append((obs, save_path))
+        idx = min(self._idx, len(self.responses) - 1)
+        response = self.responses[idx]
+        self._idx += 1
+        plan = _FakeLLMPathPlan(response)
+        return True, [plan], ["no feedback"], [response]
+
+    def post_execute_update(self, obs_desp, execute_success, parsed_plan):
+        self.updates.append((obs_desp, execute_success, parsed_plan))
+        if execute_success:
+            self.failed_plans = []
+            self.round_history.append(parsed_plan)
+        else:
+            self.failed_plans.append(parsed_plan)
+
+    def post_episode_update(self):
+        self.episode_resets += 1
+        self.round_history = []
+        self.failed_plans = []
+
+    # describe_obs is called by notify_result() to build obs_desp
+    @property
+    def env(self):
+        return self
+
+    def describe_obs(self, obs):
+        return "[scene at step {}]".format(len(self.round_history))
+
+
+class TestMultiStepFeedbackLoop:
+    """Verify direct_feedback and bt_mediated loop correctly for a multi-step task."""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _make_two_step_env(self):
+        """FakeSandwichEnv that reports done=True after bread_slice1 is PUT on the cutting_board."""
+        return FakeSandwichEnv()
+
+    def _build_controller_with_prompter(self, mode, responses, env=None, executor_obj=None, fail_first=False):
+        if env is None:
+            env = FakeSandwichEnv()
+        prompter = _HistoryTrackingPrompter(responses)
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        if executor_obj is None:
+            executor_obj = _ActionTrackingExecutor(env, success=not fail_first)
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller(mode, planner, adapter, uncertainty_mode="none")
+        return controller, planner, prompter, env
+
+    # ------------------------------------------------------------------
+    # reset_episode / notify_result wiring
+    # ------------------------------------------------------------------
+
+    def test_reset_episode_called_at_start(self):
+        """reset_episode() clears any stale state before the first plan call."""
+        env = FakeSandwichEnv()
+        prompter = _HistoryTrackingPrompter([STEP1_PICK])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        # Pre-load stale history to confirm it is cleared.
+        prompter.round_history = ["stale_entry"]
+        controller = _build_combo(env, planner)
+        controller.run_episode(env, "sandwich", max_steps=5)
+        assert prompter.episode_resets == 1
+        # post_episode_update clears round_history.
+        # The stale entry was present BEFORE reset; after reset it's empty.
+        # Our prompter.post_episode_update sets round_history = [].
+        # (A successful step then adds one entry via post_execute_update, but
+        # open_loop never calls notify_result, so history stays empty.)
+        assert "stale_entry" not in prompter.round_history
+
+    def test_direct_feedback_calls_notify_result_true_between_steps(self):
+        """After a successful step when task is not done, notify_result(True) is called."""
+        env = FakeSandwichEnv()
+        # Two steps: first does nothing (task not done), second completes the task.
+        prompter = _HistoryTrackingPrompter([STEP1_PICK, STEP2_PUT])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        executor_obj = _ActionTrackingExecutor(env, success=True)
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("direct_feedback", planner, adapter, uncertainty_mode="none")
+
+        row = controller.run_episode(env, "sandwich", max_steps=20)
+
+        # STEP1_PICK: task not done → notify_result(True) → prompter called again (STEP2_PUT)
+        # STEP2_PUT: task may or may not be done depending on env state (fake env
+        # only marks done when bread_slice2 is placed, which our fake executor
+        # doesn't simulate via apply_action).  What we CAN assert:
+        assert prompter.episode_resets == 1, "reset_episode must be called once at episode start"
+        assert len(prompter.calls) >= 1, "prompter must be called at least once"
+        # notify_result(True) fires between each completed step when task is not yet done
+        success_updates = [u for u in prompter.updates if u[1] is True]
+        assert len(success_updates) >= 1
+
+    def test_direct_feedback_calls_notify_result_false_on_step_failure(self):
+        """After a failed step, notify_result(False) is called before replanning."""
+        env = FakeSandwichEnv()
+        prompter = _HistoryTrackingPrompter([STEP1_PICK, STEP1_PICK])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        # Executor fails on the first attempt, succeeds on retry.
+        class _FailOnceThenSucceed:
+            def __init__(self):
+                self.attempt = 0
+                self.executed = []
+            def execute(self, plan, obs, artifact_dir=None):
+                self.attempt += 1
+                success = self.attempt > 1
+                self.executed.append(plan)
+                return SkillExecutionResult(
+                    success=success,
+                    status=SkillExecutionStatus.SUCCESS if success else SkillExecutionStatus.MOTION_PLANNING_FAILED,
+                    reason="" if success else "rrt failed",
+                    num_sim_steps=10,
+                    reward=1.0 if success else 0.0,
+                    done=False,
+                    info={},
+                )
+        executor_obj = _FailOnceThenSucceed()
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("direct_feedback", planner, adapter, uncertainty_mode="none")
+
+        controller.run_episode(env, "sandwich", max_steps=20)
+
+        failure_updates = [u for u in prompter.updates if u[1] is False]
+        assert len(failure_updates) == 1, "notify_result(False) must fire exactly once"
+        # After the failure, prompter should be called again for the replan.
+        assert len(prompter.calls) >= 2
+
+    def test_direct_feedback_full_two_step_task_completion(self):
+        """The controller loops until env.get_reward_done() is True."""
+        env = FakeSandwichEnv()
+
+        # Override get_reward_done to return done after 2 actions.
+        action_count = [0]
+        original_execute = _ActionTrackingExecutor(env, success=True).execute
+        class _CountingExecutor:
+            def __init__(self):
+                self.executed = []
+            def execute(self, plan, obs, artifact_dir=None):
+                action_count[0] += 1
+                self.executed.append(plan)
+                # Mark env done after 2 actions.
+                if action_count[0] >= 2:
+                    env._done = True
+                return SkillExecutionResult(
+                    success=True,
+                    status=SkillExecutionStatus.SUCCESS,
+                    reason="",
+                    num_sim_steps=10,
+                    reward=1.0,
+                    done=env._done,
+                    info={},
+                )
+
+        prompter = _HistoryTrackingPrompter([STEP1_PICK, STEP2_PUT, STEP3_PICK_BACON])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        executor_obj = _CountingExecutor()
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("direct_feedback", planner, adapter, uncertainty_mode="none")
+
+        row = controller.run_episode(env, "sandwich", max_steps=30)
+
+        assert row["success"], "Episode must succeed when task is done"
+        assert action_count[0] == 2, "Exactly 2 actions should execute before task done"
+        assert len(prompter.calls) == 2, "Prompter called once per action"
+        # One notify_result(True) between step 1 and step 2 (task not done after step 1).
+        assert len([u for u in prompter.updates if u[1] is True]) == 1
+
+    def test_bt_mediated_full_two_step_task_completion(self):
+        """BTMediatedController also loops until task done."""
+        env = FakeSandwichEnv()
+        action_count = [0]
+
+        class _CountingExecutor2:
+            def __init__(self):
+                self.executed = []
+            def execute(self, plan, obs, artifact_dir=None):
+                action_count[0] += 1
+                self.executed.append(plan)
+                if action_count[0] >= 2:
+                    env._done = True
+                return SkillExecutionResult(
+                    success=True,
+                    status=SkillExecutionStatus.SUCCESS,
+                    reason="",
+                    num_sim_steps=10,
+                    reward=1.0,
+                    done=env._done,
+                    info={},
+                )
+
+        prompter = _HistoryTrackingPrompter([STEP1_PICK, STEP2_PUT])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        executor_obj = _CountingExecutor2()
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("bt_mediated", planner, adapter, uncertainty_mode="none")
+
+        row = controller.run_episode(env, "sandwich", max_steps=30)
+
+        assert row["success"]
+        assert action_count[0] == 2
+        assert len(prompter.calls) == 2
+        assert prompter.episode_resets == 1
+
+    def test_planner_error_on_next_step_is_recorded(self):
+        """If the planner fails when asking for the next step, episode ends with PLANNER_ERROR."""
+        env = FakeSandwichEnv()
+        # First call succeeds, second fails (empty response → RuntimeError).
+        prompter = _HistoryTrackingPrompter([STEP1_PICK])
+        prompter_responses_exhausted = False
+
+        class _FailSecondCall:
+            def __init__(self):
+                self.call_count = 0
+                self.round_history = []
+                self.failed_plans = []
+                self.latest_chat_history = []
+
+                @property
+                def env(self_inner):
+                    return self_inner
+
+                def describe_obs(self_inner, obs):
+                    return ""
+
+            def prompt_one_round(self, obs, save_path=""):
+                self.call_count += 1
+                if self.call_count == 1:
+                    return True, [_FakeLLMPathPlan(STEP1_PICK)], [], [STEP1_PICK]
+                return False, [], [], []  # second call fails
+
+            def post_execute_update(self, obs_desp, success, plan):
+                pass
+
+            def post_episode_update(self):
+                pass
+
+            @property
+            def env(self):
+                class _E:
+                    def describe_obs(self_, obs):
+                        return ""
+                return _E()
+
+        bad_prompter = _FailSecondCall()
+        planner = LegacyPromptPlanner("sandwich", bad_prompter, "plan", SANDWICH_AGENTS)
+        executor_obj = _ActionTrackingExecutor(env, success=True)
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("direct_feedback", planner, adapter, uncertainty_mode="none")
+
+        row = controller.run_episode(env, "sandwich", max_steps=20)
+
+        assert not row["success"]
+        assert "PLANNER_ERROR" in row["failure_counts"]
+
+    def test_history_accumulates_across_steps(self):
+        """Round history grows with each successful step so LLM sees past actions."""
+        env = FakeSandwichEnv()
+        action_count = [0]
+
+        class _ThreeStepExecutor:
+            def __init__(self):
+                self.executed = []
+            def execute(self, plan, obs, artifact_dir=None):
+                action_count[0] += 1
+                self.executed.append(plan)
+                if action_count[0] >= 3:
+                    env._done = True
+                return SkillExecutionResult(
+                    success=True, status=SkillExecutionStatus.SUCCESS,
+                    reason="", num_sim_steps=5, reward=1.0, done=env._done, info={},
+                )
+
+        prompter = _HistoryTrackingPrompter([STEP1_PICK, STEP2_PUT, STEP3_PICK_BACON])
+        planner = LegacyPromptPlanner("sandwich", prompter, "plan", SANDWICH_AGENTS)
+        executor_obj = _ThreeStepExecutor()
+        adapter = LegacyTaskRRTExecutorAdapter(
+            env=env, task_id="sandwich", parser=_FakeParser(), executor=executor_obj,
+        )
+        controller = build_controller("direct_feedback", planner, adapter, uncertainty_mode="none")
+
+        row = controller.run_episode(env, "sandwich", max_steps=30)
+
+        assert row["success"]
+        # Two notify_result(True) calls: after step 1 (not done) and after step 2 (not done).
+        # Step 3 → task done → return immediately without notify_result.
+        success_updates = [u for u in prompter.updates if u[1] is True]
+        assert len(success_updates) == 2
+        # The prompter's round_history should have 2 entries (one per successful notify).
+        assert len(prompter.round_history) == 2
+
+
+# ===========================================================================
+
 class TestSandwichTaskSpec:
     def test_legacy_task_spec_contains_sandwich_skills_and_context(self):
         from rocobench.crie_bt.legacy_tasks import legacy_task_spec

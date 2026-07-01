@@ -59,10 +59,12 @@ class LearnedPolicyRegistry(object):
             )
         return matches[0]
 
+    _VALID_POLICY_TYPES = {"act", "octo", "mock", "lerobot", "bc_nn"}
+
     def validate_static(self, spec):
         issues = []
-        if spec.policy_type.lower() != "act":
-            issues.append("policy_type must be ACT")
+        if spec.policy_type.lower() not in self._VALID_POLICY_TYPES:
+            issues.append(f"policy_type must be one of {sorted(self._VALID_POLICY_TYPES)}")
         if spec.execution_horizon > spec.max_steps:
             issues.append("execution_horizon cannot exceed max_steps")
         if spec.checkpoint and not os.path.exists(spec.checkpoint):

@@ -1,0 +1,25 @@
+# Sandwich task — k-NN Behavioral Cloning policies
+# Trained with: python scripts/train_bc_nn.py --task sandwich --skill PICK --agent Chad
+
+policies:
+  - policy_id: bc_nn_sandwich_pick_chad_v1
+    skill_name: PICK
+    agent_name: Chad
+    embodiment_id: ur5e_suction
+    task_id: sandwich
+    checkpoint: checkpoints/bc_nn/sandwich_pick_chad.npz
+    checkpoint_revision: "v1"
+    policy_type: bc_nn
+    schema_hash: ""
+    action_representation: joint_ctrl
+    cameras:
+      - teaser
+    max_steps: 300
+    execution_horizon: 10
+    success_monitor: stable
+    failure_monitors:
+      - TIMEOUT
+      - NO_PROGRESS
+      - NONFINITE_ACTION
+    enabled: true
+    description: "kNN-BC PICK policy for Chad, trained on 30 scripted demos (129 state-action pairs)"

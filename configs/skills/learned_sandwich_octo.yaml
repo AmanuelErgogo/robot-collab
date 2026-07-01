@@ -1,0 +1,125 @@
+# CRIE-Bench: trained Octo skill specs for the sandwich task.
+#
+# This file is scanned by `crie_bench skills` to show the trained-skill
+# inventory.  Update `checkpoint` paths after training completes.
+#
+# Generate checkpoints with:
+#   python -m crie_bench collect --task sandwich --num-episodes 200
+#   python -m crie_bench train   --task sandwich --skill PICK     --agent Chad --model octo
+#   python -m crie_bench train   --task sandwich --skill STACK_ON --agent Dave --model octo
+
+executor:
+  task_id: sandwich
+  max_active_calls: 2
+  stable_success_checks: 2
+  no_progress_window: 20
+  no_progress_patience: 3
+  no_progress_state_epsilon: 0.0001
+  no_progress_action_epsilon: 0.0001
+  action_bound_tolerance: 0.00001
+  policy_cache_size: 2
+  fallback:
+    mode: return_request
+    backend: rrt
+    allowed_reasons:
+      - POLICY_INFERENCE_FAILURE
+      - NO_PROGRESS
+    max_fallbacks: 1
+
+policies:
+
+  # ── Chad (ur5e_suction) — PICK ─────────────────────────────────────────────
+  - policy_id: octo_sandwich_pick_chad_v1
+    skill_name: PICK
+    agent_name: Chad
+    embodiment_id: ur5e_suction
+    task_id: sandwich
+    checkpoint: checkpoints/octo/sandwich_pick_chad_v1
+    checkpoint_revision: "step_000500"
+    policy_type: octo
+    schema_hash: ""
+    action_representation: joint_ctrl
+    cameras:
+      - overhead_cam
+    max_steps: 300
+    execution_horizon: 4
+    success_monitor: stable
+    failure_monitors:
+      - TIMEOUT
+      - NONFINITE_ACTION
+      - ACTION_OUT_OF_BOUNDS
+      - NO_PROGRESS
+      - OBJECT_LOST
+      - COLLISION_RISK
+      - BRIDGE_FAILURE
+      - POLICY_INFERENCE_FAILURE
+      - MANUAL_INTERRUPT
+    enabled: true
+
+  # ── Dave (humanoid) — STACK_ON ────────────────────────────────────────────
+  - policy_id: octo_sandwich_stack_on_dave_v1
+    skill_name: STACK_ON
+    agent_name: Dave
+    embodiment_id: humanoid
+    task_id: sandwich
+    checkpoint: checkpoints/octo/octo_sandwich_stack_on_dave
+    checkpoint_revision: "v1"
+    policy_type: octo
+    schema_hash: ""
+    action_representation: joint_ctrl
+    cameras:
+      - overhead_cam
+    max_steps: 300
+    execution_horizon: 10
+    success_monitor: stable
+    failure_monitors:
+      - TIMEOUT
+      - NONFINITE_ACTION
+      - ACTION_OUT_OF_BOUNDS
+      - NO_PROGRESS
+      - OBJECT_LOST
+      - COLLISION_RISK
+      - BRIDGE_FAILURE
+      - POLICY_INFERENCE_FAILURE
+      - MANUAL_INTERRUPT
+    enabled: false    # set to true after checkpoint is trained
+
+  # ── Chad — PICK (mock, for testing without real checkpoint) ────────────────
+  - policy_id: mock_sandwich_pick_chad
+    skill_name: PICK
+    agent_name: Chad
+    embodiment_id: ur5e_suction
+    task_id: sandwich
+    checkpoint: ""
+    checkpoint_revision: "mock"
+    policy_type: mock
+    schema_hash: ""
+    action_representation: joint_ctrl
+    cameras: []
+    max_steps: 300
+    execution_horizon: 10
+    success_monitor: stable
+    failure_monitors:
+      - TIMEOUT
+      - NO_PROGRESS
+    enabled: true
+
+  # ── Dave — STACK_ON (mock, for testing without real checkpoint) ───────────
+  - policy_id: mock_sandwich_stack_on_dave
+    skill_name: STACK_ON
+    agent_name: Dave
+    embodiment_id: humanoid
+    task_id: sandwich
+    checkpoint: ""
+    checkpoint_revision: "mock"
+    policy_type: mock
+    schema_hash: ""
+    action_representation: joint_ctrl
+    cameras: []
+    max_steps: 300
+    execution_horizon: 10
+    success_monitor: stable
+    failure_monitors:
+      - TIMEOUT
+      - NO_PROGRESS
+    enabled: true

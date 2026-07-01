@@ -1,0 +1,38 @@
+# CRIE-Bench: Octo fine-tuning config for sandwich / PICK / Chad
+# Usage:
+#   python -m crie_bench train \
+#       --task sandwich --skill PICK --agent Chad --model octo \
+#       --num-steps 20000 --batch-size 128
+
+preset: sandwich_pick_chad     # see integrations/octo_roco/training/config.py
+
+# Override any preset field here:
+name: octo_sandwich_pick_chad
+
+task_id: sandwich
+skill_id: PICK
+agent_name: Chad
+
+pretrained_path: "hf_hub:rail-berkeley/octo-small"
+window_size: 2
+
+# Dataset
+data_root: data/subtask_demos
+val_fraction: 0.1
+action_dim: 14        # ur5e_suction: 7 joints + pad to 14
+state_dim: 14         # qpos(7) + ee_xpos(3) + ee_xquat(4)
+language_instruction: "PICK(object=ingredient)"
+
+# Training
+num_steps: 20000
+batch_size: 128
+chunk_size: 10
+save_interval: 2000
+eval_interval: 2000
+lr: 3.0e-4
+seed: 42
+
+# Freeze ViT backbone; only fine-tune action head + language projector
+frozen_keys: "(?!.*hf_token).*vit.*"
+
+output_dir: checkpoints/octo

@@ -247,12 +247,17 @@ def _build_legacy_prompt_planner(env, task_id: str, args):
     save_dir = args.prompt_artifact_dir
     if not save_dir and args.artifact_dir:
         save_dir = os.path.join(args.artifact_dir, "planner_prompts")
+    if not save_dir:
+        # Default: store prompts alongside the output JSONL so they are easy to find.
+        save_dir = os.path.splitext(os.path.abspath(args.output))[0] + "_prompts"
+    os.makedirs(save_dir, exist_ok=True)
     return LegacyPromptPlanner(
         task_id=task_id,
         prompter=prompter,
         planner_mode=args.planner_mode,
         agent_names=agent_names_for_env(env),
         save_dir=save_dir,
+        plan_horizon=args.plan_horizon,
     )
 
 
@@ -339,12 +344,6 @@ def run(args) -> List[Dict[str, Any]]:
         for episode in range(int(args.episodes)):
             for task_id in _tasks(args.task):
                 for mode in _modes(args.mode):
-                    if args.planner_mode in ("plan", "chat", "dialog") and mode != ExecutionMode.OPEN_LOOP.value:
-                        raise ValueError(
-                            "--planner-mode {} is implemented only with --mode open_loop for now.".format(
-                                args.planner_mode
-                            )
-                        )
                     adapter = _select_adapter(task_id, args)
                     env = _build_env(task_id, adapter, int(args.seed) + episode)
                     obs = env.get_obs() if hasattr(env, "get_obs") else None
@@ -415,6 +414,8 @@ def main(argv=None) -> int:
     parser.add_argument("--max-steps", type=int, default=20)
     parser.add_argument("--max-sim-steps", type=int, default=5000)
     parser.add_argument("--max-retries", type=int, default=1)
+    parser.add_argument("--plan-horizon", type=int, default=1,
+                        help="Number of steps to request from the LLM in one call (>1 = multi-step plan).")
     parser.add_argument("--llm-output-mode", choices=["action_only", "action_and_path"], default="action_only")
     parser.add_argument("--llm-source", default="gpt-4")
     parser.add_argument("--api-key-path", default="")
