@@ -1,165 +1,134 @@
-# CRIE-BT: Full Experimental Design
+# CRIE-BT Experimental Design
 
-## 1. Conditions
+This document defines the current paper-facing experiment. The method set has
+two primary methods and two centralized ablations.
 
-Each condition is a cross of a **feedback mode** (how failure is handled) × a **communication mode** (how agents coordinate via LLM).
+## 1. Simulator Scope
 
-### 1.1 Feedback Modes
+The Robot-Robot simulator experiment runs autonomous robot agents in RoCoBench.
+All agents are controlled through the existing `EXECUTE / NAME / ACTION`
+grammar and executed by the legacy RRT path unless otherwise noted.
 
-| Label | Controller | Description |
-|---|---|---|
-| **No-Feedback** | `OpenLoopController` | LLM plans once at episode start. All steps execute sequentially. No recovery on failure. Baseline. |
-| **With-Feedback** | `DirectFeedbackController` | After each failed step, failure details are returned to the LLM which replans. Loop until success or step budget. |
-| **Feedback+BT** *(our method)* | `BTMediatedController` | Failure handling is governed by a Behavior Tree. The BT reads uncertainty estimates and decides whether to replan, retry locally, or escalate to a human. Adds structured recovery beyond direct replanning. |
+Paper tasks:
 
-### 1.2 Communication Modes
+| Task ID | Paper name | Class | Notes |
+| --- | --- | --- | --- |
+| `sandwich` | Sandwich | Sequential-dependent | Strict stacking order. |
+| `pack` | Pack Grocery | Parallel-independent | Flexible item order. Use `--adapter legacy` for LLM Robot-Robot runs. |
+| `cabinet` | Cabinet | Gated | Cabinet manipulation with task-specific agent set. |
+| `sort` | Sort | Parallel-independent | Object-to-zone assignment. |
 
-| Label | Prompter | Description |
-|---|---|---|
-| **Centralised (w/ history)** | `SingleThreadPrompter` with history | A single prompt covering all agents, with the full prior conversation appended. One LLM call per planning round. |
-| **Dialog** | `DialogPrompter` | Agents take turns: each agent sends and receives one message per round before a joint action is committed. Richer but more expensive and prone to single-agent parse failures. |
+Extra supported runner tasks, outside the paper scope: `sweep` and `rope`.
 
-> Note: a third mode, **Centralised (no history)** (`plan`), exists in the codebase and was used for initial debugging but is not a primary condition in the paper — it is subsumed by Centralised (w/ history).
+## 2. Primary Methods
 
-### 1.3 Full Condition Matrix (6 primary conditions)
+| Method | Controller | Communication mode | Runner flags |
+| --- | --- | --- | --- |
+| CRIE-BT-Dialog | `BTMediatedController` | `dialog` | `--mode bt_mediated --planner-mode dialog --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Dialog | `VLMSARMMonitorPlannerController` | `dialog` | `--mode vlm_sarm_monitor_planner --planner-mode dialog --adapter legacy` |
 
-| | Centralised (w/ history) | Dialog |
-|---|---|---|
-| **No-Feedback** | C1 | C2 |
-| **With-Feedback** | C3 | C4 |
-| **Feedback+BT** *(ours)* | C5 | C6 |
+The VLM/SARM simulator baseline uses the same planner and RRT executor path as
+CRIE-BT. Its monitor interface is the same surface expected from the real
+VLM/SARM backend, but the simulator backend uses `env.get_reward_done()` for
+`DONE` and executor failure feedback for `FAILED`.
 
-Status:
+In simulator-only experiments, this makes the VLM/SARM monitor-planner baseline
+the paper-facing replacement for the older `direct_feedback` controller name.
+`VLM/SARM-Monitor-Planner-Dialog` is the reported name for the behavior that was
+previously closest to `DirectFeedback-Dialog`; the centralized ablation is the
+reported name for the behavior previously closest to `DirectFeedback-Cent`.
 
-| Condition | Status |
-|---|---|
-| C1 — No-Feedback × Centralised | ✅ Evaluated (n=15, sandwich, Gemini 2.5 Flash) |
-| C2 — No-Feedback × Dialog | ✅ Evaluated (n=15, sandwich, Gemini 2.5 Flash) |
-| C3 — With-Feedback × Centralised | ⚙️ Controller implemented, not yet evaluated |
-| C4 — With-Feedback × Dialog | ⚙️ Controller implemented, not yet evaluated |
-| C5 — Feedback+BT × Centralised | ⚙️ Controller implemented, not yet evaluated |
-| C6 — Feedback+BT × Dialog | ⚙️ Controller implemented, not yet evaluated |
+## 3. Ablations
 
----
+| Ablation | Controller | Communication mode | Runner flags |
+| --- | --- | --- | --- |
+| CRIE-BT-Cent | `BTMediatedController` | `chat` | `--mode bt_mediated --planner-mode chat --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Cent | `VLMSARMMonitorPlannerController` | `chat` | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
 
-## 2. Agent Configurations
+Open-loop runs may be used as smoke tests, but they are not primary paper
+methods or main ablations.
 
-The same 6 conditions run under four agent configurations. In all configurations, **"human" means a human operator selects the next subtask** (e.g. "PICK bread_slice1") and the robot executes it autonomously using its low-level skill executor (RRT motion planning). The human replaces the LLM planner — the execution pipeline (skill executor, BT, feedback) remains identical.
+## 4. Result Paths
 
-| Configuration | Planners | Executors | Role |
-|---|---|---|---|
-| **Robot–Robot** | LLM + LLM | Arm + Arm | Both subtask selections made by LLM. Primary configuration for all 6 conditions. |
-| **Human–Robot** | Human + LLM | Arm + Arm | One operator selects subtasks for one arm; the other arm is LLM-planned. Tests asymmetric teaming where the LLM must adapt to a human partner's choices. |
-| **Human–Human** | Human + Human | Arm + Arm | Both subtask selections made by human operators. **Upper-bound baseline**: shows peak task completion when perfect coordination is possible. No LLM involved. Applies to all tasks. |
-| **Single Robot** | LLM (or Human) | Arm only | One arm, one planner. Tests individual capability in isolation. Only feasible for tasks a single arm can physically complete. |
+New results use:
 
-> **Human teleoperation interface**: The human is presented with the current observation and selects a subtask from the valid action set (e.g. `PICK <obj>`, `PLACE <target>`, `WAIT`). The selected subtask is passed directly to `LegacyTaskRRTExecutorAdapter` — the same execution path used by the LLM. This means Human–Human provides a fair upper bound because it uses identical low-level execution. Human–Human does **not** apply to conditions C1–C6 (which all require an LLM planner); it is a separate reference condition evaluated once per task.
+```text
+results/robot_robot_sim_v1/{task_id}/{method}/episodes.jsonl
+results/robot_robot_sim_v1/{task_id}/{method}/prompts/
+results/robot_robot_sim_v1/{task_id}/{method}/analysis/
+```
 
----
+Stable method directory names:
 
-## 3. Tasks
+```text
+crie_bt_dialog
+vlm_sarm_dialog
+crie_bt_cent
+vlm_sarm_cent
+```
 
-Six tasks, evaluated on all 6 conditions × 3 agent configurations where feasible. Tasks are classified by their **coordination structure** and **ordering constraint**, since these determine which failure modes are most likely and which recovery strategies matter.
+Legacy result directories such as `results/sandwich_open_loop/`,
+`results/sandwich_bt_mediated/`, and `results/c3_to_c6_runs/` should not be
+extended with new paper runs.
 
-### Task Classification
+## 5. Metrics
 
-| Class | Definition | Expected difficulty |
-|---|---|---|
-| **Sequential-Dependent** | Steps must happen in a fixed order; each step depends on the previous one. | High: wrong order = unrecoverable without full reset. BT recovery most valuable. |
-| **Parallel-Independent** | Steps can happen in any order and simultaneously. | Medium: coordination needed to avoid collision but no strict sequencing. |
-| **Gated** | One agent must complete a prerequisite before the other can proceed. | Medium-High: deadlock possible if gate is not recognised. |
-| **Tightly-Coupled** | Both agents must act simultaneously on the same object. | Very high: requires precise synchronisation; dialog mode most critical. |
-| **Continuous-Cooperative** | Task has no discrete steps; agents must maintain a shared state over time. | High for replanning approaches; no natural plan granularity. |
+| Metric | Episode field | Analyzer field |
+| --- | --- | --- |
+| Task success rate | `sim_success` | `task_success_rate` |
+| Controller success rate | `success` | `success_rate` |
+| Completion time | `wall_time_s` | `avg_wall_time_s`, `std_wall_time_s` |
+| LLM latency | `llm_call_latencies_s` | `avg_llm_latency_s` |
+| Token consumption | `llm_prompt_tokens`, `llm_completion_tokens`, `llm_total_tokens` | `avg_llm_prompt_tokens`, `avg_llm_completion_tokens`, `avg_llm_total_tokens` |
+| Replanning | `replans` | `avg_replans` |
+| Local recovery | `local_retries` | `avg_local_retries` |
+| Failure breakdown | `failure_counts` | `failure_counts` |
+| Monitor decisions | `events` with `event_type=VLM_SARM_MONITOR` | inspect event payloads |
+| Explanations | `explanations` | `explanation_count` |
+| Reactivity | `reactivity_s` when annotated | `avg_reactivity_s` |
+| Hallucination rate | `hallucination_count`, `hallucination_annotation_count` | `hallucination_rate` |
 
-### Task Table
+Reactivity and hallucination rate are supported by the analyzer but are not
+automatically produced by the simulator. They require external annotation or a
+future event/judge pipeline.
 
-| Task | File | Agents (R-R) | Class | Ordering | CRIE-BT adapted |
-|---|---|---|---|---|---|
-| **Sandwich** | `task_sandwich.py` | Chad + Dave (or humanoid) | Sequential-Dependent | Strict: bread→bacon→cheese→tomato→bread | ✅ Full |
-| **Pack Grocery** | `task_pack.py` | Alice + Bob | Parallel-Independent | Flexible: pack any item at any time | ✅ Partial |
-| **Cabinet** | `task_cabinet.py` | 3 agents (Alice, Bob, Carol) | Gated | One opens cabinet, others place items inside | ❌ Not adapted |
-| **Sort** | `task_sort.py` | 3 agents (Alice, Bob, Carol) | Parallel-Independent | Flexible: sort any object to correct bin | ❌ Not adapted |
-| **Sweep** | `task_sweep.py` | Chad + Dave | Continuous-Cooperative | None: continuous sweeping motion | ❌ Not adapted |
-| **Rope** | `task_rope.py` | Chad + Dave | Tightly-Coupled | Simultaneous: both grip rope ends | ❌ Not adapted |
+## 6. Failure Codes
 
-> Cabinet and Sort use **3 agents**, which Dialog mode handles naturally (additional turn per agent) but Centralised mode must encode all three in one prompt.
-
----
-
-## 4. Metrics
-
-### 4.1 Per-Episode Outcomes
-
-| Metric | Key | Definition |
-|---|---|---|
-| **Action Success Rate (ASR)** | `action_success_rate` | % episodes where the LLM produced a valid EXECUTE block **and** the RRT physically executed it. Primary metric for No-Feedback conditions where task completion is structurally low. |
-| **Task Completion Rate (TCR)** | `task_completion_rate` | % episodes where `env.get_reward_done()` returned `done=True` (full task assembled). Primary metric for With-Feedback and Feedback+BT conditions. |
-| **ASR 95% CI** | `asr_ci_lo / asr_ci_hi` | Wilson score interval. Tighter than normal approximation for small n. |
-
-> **Why both?** For No-Feedback (open_loop), TCR ≈ 0% by construction (one LLM call cannot complete a ~10-step task), so ASR is the discriminating metric. For With-Feedback and Feedback+BT, the controller loops until done or timeout, making TCR the meaningful outcome. Both are always reported.
-
-### 4.2 Efficiency Metrics
-
-| Metric | Key | Description |
-|---|---|---|
-| Steps | `avg_steps_all ± std` | Executor `.step()` calls per episode (≈ simulator ticks) |
-| Wall time | `avg_wall_time_s ± std` | Total episode clock time (seconds) |
-| LLM latency | `avg_llm_latency_s` | Mean per-call LLM response time; excludes sim/RRT |
-| Planner errors | `planner_errors` (count/n) | Episodes that exhausted `num_replans` without a valid EXECUTE block |
-| Replans | `avg_replans` | Mean LLM replan calls per episode |
-| Local retries | `avg_local_retries` | Mean executor-level retries below the LLM layer |
-
-### 4.3 Recovery Metrics (With-Feedback and Feedback+BT only)
-
-| Metric | Definition |
-|---|---|
-| **Recovery Rate** | Among episodes that had at least one failure, fraction that ultimately succeeded |
-| **Steps-to-Recovery** | Mean steps taken from first failure to next success |
-| **Unnecessary Replans** | Replans triggered when no actual failure occurred (proxy for over-sensitivity) |
-
-### 4.4 Failure Codes
-
-Every episode logs `failure_counts` broken down by `FailureCode`:
+Episodes aggregate `failure_counts` using CRIE-BT failure codes:
 
 | Code | Trigger |
-|---|---|
-| `PLANNER_ERROR` | LLM never returned a parseable EXECUTE block within `num_replans` retries |
-| `POSTCONDITION_FAILED` | RRT ran but skill postcondition not satisfied (e.g. object not grasped) |
-| `MISSED_GRASP` | Gripper closed but object not detected as held |
-| `NO_PROGRESS` | Executor exceeded sim step budget without completing |
-| `WRONG_OBJECT` | Robot picked the wrong object |
-| `WRONG_TARGET` | Robot placed at the wrong target location |
-| `SAFETY_CONFLICT` | Planned action would cause collision |
-| `TIMEOUT` | Episode exceeded wall-clock budget |
-| `UNKNOWN` | Unclassified executor exception |
+| --- | --- |
+| `PLANNER_ERROR` | Planner did not produce a parseable executable response. |
+| `POSTCONDITION_FAILED` | The action ran but the expected simulator postcondition was not satisfied. |
+| `MISSED_GRASP` | The gripper closed without holding the target object. |
+| `NO_PROGRESS` | The executor exceeded its progress budget. |
+| `WRONG_OBJECT` | The wrong object was manipulated. |
+| `WRONG_TARGET` | The object was placed at the wrong target. |
+| `SAFETY_CONFLICT` | The planned action conflicts with a safety constraint. |
+| `TIMEOUT` | Execution exceeded the configured budget. |
+| `UNKNOWN` | Unclassified executor failure. |
 
----
+## 7. Real-World Transfer Gaps
 
-## 5. Full Experiment Matrix
+The simulator path already uses the interfaces needed for a real environment:
+`CollaborativePlan`, `SkillCall`, `ExecutionFeedback`, `BaseSkillExecutor`,
+and `BaseVLMSARMMonitorBackend`. Remaining blockers:
 
-Rows = conditions, Columns = configurations (4), Cells = tasks evaluated. Human–Human is a reference baseline, not a condition of C1–C6.
+- replace `SimulatorSignalVLMSARMMonitor` with the real VLM/SARM backend;
+- add a `RealWorldCRIEEnvAdapter` with `reset`, `get_obs`, `describe_obs`, and
+  `get_reward_done`;
+- wrap learned policy execution from `rocobench/skills/learned` as a CRIE-BT
+  `BaseSkillExecutor`;
+- add guarded real-world primitive execution, stop handling, safety checks, and
+  artifact/video logging.
 
-|  | Robot–Robot | Human–Robot | Human–Human | Single Robot |
-| --- | --- | --- | --- | --- |
-| **C1** No-Feedback × Cent | Sandwich ✅, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **C2** No-Feedback × Dialog | Sandwich ✅, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **C3** With-Feedback × Cent | Sandwich, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **C4** With-Feedback × Dialog | Sandwich, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **C5** Feedback+BT × Cent *(ours)* | Sandwich, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **C6** Feedback+BT × Dialog *(ours)* | Sandwich, Pack, Cabinet, Sort, Sweep, Rope | Sandwich, Pack | — | Sandwich, Pack |
-| **Human–Human** *(reference)* | — | — | All 6 tasks | Sandwich, Pack |
+## 8. Verification
 
-> Single Robot is only feasible for tasks one arm can complete (Sandwich, Pack). Sweep and Rope require two arms by design. Human–Human across all 6 tasks establishes the performance ceiling for each task under ideal coordination.
+Run the stdlib CRIE-BT tests after code changes:
 
----
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q tests/crie_bt
+```
 
-## 6. Implementation Gaps
-
-| Gap | Priority | Notes |
-|---|---|---|
-| CRIE-BT adapters for Cabinet, Sort, Sweep, Rope | High | Need `LegacyPromptPlanner` + `LegacyTaskRRTExecutorAdapter` per task |
-| Human–Robot mode | Medium | Needs scripted humanoid policy; sandwich env already has humanoid body |
-| Single-Robot mode | Medium | Need single-agent prompters and executor adapters |
-| Evaluate C3–C6 on sandwich | High | Controllers exist; need eval script extension |
-| More episodes for tighter CIs | Medium | Current n=15; paper typically needs n=30–50 |
-| Fix RRT grasp inflation | Medium | RRT reports `success=True` (TRANSPORTING stage) even when object not grasped |
+Run MuJoCo and live LLM experiments only inside the Python 3.8 `roco`
+environment.

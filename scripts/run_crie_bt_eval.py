@@ -132,7 +132,11 @@ def run(args) -> List[Dict[str, Any]]:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", choices=["sort", "cabinet", "rope", "sweep", "sandwich", "pack"], default="pack")
-    parser.add_argument("--mode", choices=["open_loop", "direct_feedback", "bt_mediated", "all"], default="all")
+    parser.add_argument(
+        "--mode",
+        choices=["open_loop", "direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
+        default="all",
+    )
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", default="results/crie_bt/eval.jsonl")

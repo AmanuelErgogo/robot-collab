@@ -11,8 +11,11 @@ Each condition is a combination of an **execution mode** (how the controller rea
 | `open_loop` | `OpenLoopController` | LLM generates a plan **once** at the start of the episode. All plan steps execute sequentially with no replanning. Failure of one step halts the episode. |
 | `direct_feedback` | `DirectFeedbackController` | LLM plans → executes one step → if the step fails, the failure is fed back to the LLM which replans. Loop repeats until the task succeeds or `max_steps` is reached. |
 | `bt_mediated` | `BTMediatedController` | Same replanning loop as `direct_feedback` but the decision to replan, retry locally, or request human input is governed by a Behavior Tree runtime that reads uncertainty estimates. |
+| `vlm_sarm_monitor_planner` | `VLMSARMMonitorPlannerController` | Executes one planner action, then queries a VLM/SARM monitor interface. The simulator backend maps simulator done/failed signals to monitor decisions. |
 
-**Trade-off**: `open_loop` is fastest (one LLM call per episode) but cannot recover from failure. `bt_mediated` is most robust but adds latency and complexity.
+**Paper scope**: the two primary methods are the Dialog variants of
+`bt_mediated` and `vlm_sarm_monitor_planner`; the Centralised variants are
+ablations.
 
 ### 1.2 Communication Modes
 
@@ -28,17 +31,31 @@ These determine how the LLM is queried inside any execution mode.
 
 |  | `plan` | `chat` | `dialog` |
 |---|---|---|---|
-| `open_loop` | ✅ evaluated | ✅ evaluated | ✅ evaluated |
+| `open_loop` | implemented | implemented | implemented |
 | `direct_feedback` | implemented | implemented | implemented |
 | `bt_mediated` | implemented | implemented | implemented |
+| `vlm_sarm_monitor_planner` | implemented | implemented | implemented |
 
-Only the `open_loop` row has been run end-to-end with the real simulator and LLM.
+The current paper methods are `bt_mediated + dialog` (CRIE-BT-Dialog) and
+`vlm_sarm_monitor_planner + dialog`
+(VLM/SARM-Monitor-Planner-Dialog). The `chat` versions are centralized
+ablations. Use `--adapter legacy` for all four paper simulator tasks in
+Robot-Robot runs.
+
+For paper naming, `vlm_sarm_monitor_planner` replaces the older
+`direct_feedback` baseline. In simulation the VLM/SARM monitor consumes the
+same done/failure signals that direct feedback uses, so the behavior is
+equivalent apart from explicit monitor-decision logging and the swappable
+real-monitor interface.
 
 ---
 
 ## 2. Tasks
 
-All tasks run in **MuJoCo** with two robot arms: **Chad** (`ur5e_robotiq`, right side) and **Dave** (`panda`, left side). Available actions per robot: `PICK <obj>`, `PLACE <target>`, `WAIT`.
+All tasks run in **MuJoCo** through RoCoBench task definitions. Sandwich and
+Pack Grocery use two robot arms in the common setup; Cabinet and Sort may
+expose more than two task agents. High-level actions are parsed through each
+task's existing `EXECUTE / NAME / ACTION` grammar.
 
 ### 2.1 Sandwich (primary benchmark)
 
@@ -61,12 +78,20 @@ bread_slice1 → bacon → cheese → tomato → bread_slice2
 
 Pack a set of grocery items from the table into a box. Order is flexible but both robots must cooperate to avoid collision.
 
-### 2.3 Other Environments (not yet CRIE-BT adapted)
+### 2.3 Additional Paper Tasks
 
 | Task | File | Description |
 |---|---|---|
 | Cabinet | `task_cabinet.py` | Open cabinet door, place objects inside |
 | Sort | `task_sort.py` | Sort objects by category into separate zones |
+
+### 2.4 Extra Supported Environments
+
+The runner also supports these RoCoBench tasks, but they are outside the
+four-task paper scope:
+
+| Task | File | Description |
+|---|---|---|
 | Sweep | `task_sweep.py` | Cooperative sweeping of scattered objects |
 | Rope | `task_rope.py` | Bimanual rope manipulation |
 
@@ -78,9 +103,9 @@ Pack a set of grocery items from the table into a box. Order is flexible but bot
 
 | Metric | Formula | Interpretation |
 |---|---|---|
-| **Action Success Rate (ASR)** | `episodes where success=True / n` | The LLM produced a parseable EXECUTE block **and** the RRT executor physically completed the action. Primary metric for `open_loop` (where task completion is structurally ~0%). |
-| **Task Completion Rate (TCR)** | `episodes where sim_success=True / n` | `env.get_reward_done()` returned done — the full task was assembled. Meaningful only for multi-step controllers (`direct_feedback`, `bt_mediated`). |
-| **ASR 95% CI** | Wilson score interval | Tighter than normal approximation for small n. Reported as `[lo, hi]` in percent. |
+| **Controller Success Rate** | `success_rate` | Episodes where `success=True`. For open-loop, this is the action-level success proxy. |
+| **Task Completion Rate (TCR)** | `task_success_rate` | Episodes where `sim_success=True`; `env.get_reward_done()` returned done for the full task. |
+| **95% CI** | Wilson score interval when computed | Tighter than normal approximation for small n. The legacy open-loop script computes this directly; the generic analyzer reports rates. |
 
 > **Why ASR and not TCR for open_loop?** The open_loop controller executes exactly one LLM-planned action per episode. A sandwich needs ~10 actions. TCR is structurally ~0% regardless of LLM quality, so it cannot differentiate communication modes. ASR measures what the LLM actually controls: plan validity and physical executability of the first action.
 
@@ -88,12 +113,21 @@ Pack a set of grocery items from the table into a box. Order is flexible but bot
 
 | Metric | Key | Description |
 |---|---|---|
-| Steps | `avg_steps_all ± std` | Total executor `.step()` calls per episode (one call = one simulator tick) |
-| Wall time | `avg_wall_time_s ± std` | Total episode wall-clock time in seconds |
-| LLM latency | `avg_llm_latency_s` | Mean per-call LLM response time (excludes RRT/sim time) |
+| Steps | `avg_steps` | Total executor `.step()` calls per episode (one call = one simulator tick) |
+| Wall time | `avg_wall_time_s ± std` | Total episode wall-clock time in seconds, recorded as `wall_time_s` by `run_crie_bt_sim.py` |
+| LLM latency | `avg_llm_latency_s` | Mean per-call LLM response time from `llm_call_latencies_s` |
+| Token consumption | `avg_llm_prompt_tokens`, `avg_llm_completion_tokens`, `avg_llm_total_tokens` | Aggregated from each prompter call's LLM usage payload |
 | Planner errors | `planner_errors` (count/n) | Episodes that exhausted all `num_replans` retries without a valid EXECUTE block |
 | Replans | `avg_replans` | Mean number of LLM replan attempts per episode |
 | Local retries | `avg_local_retries` | Mean executor-level retries (sub-LLM recovery) |
+| Monitor decisions | `VLM_SARM_MONITOR` events | VLM/SARM baseline decisions and evidence |
+
+Annotation-only paper metrics:
+
+| Metric | Key | Description |
+|---|---|---|
+| Reactivity | `reactivity_s` | Latency from failure/state change to first corrective action; supported by the analyzer when externally annotated. |
+| Hallucination rate | `hallucination_count / hallucination_annotation_count` | Supported by the analyzer for manual or external annotations. |
 
 ### 3.3 Failure Codes
 
@@ -109,7 +143,7 @@ Every episode logs a `failure_counts` dict keyed by `FailureCode`:
 
 ---
 
-## 4. Current Results Summary (open_loop, n=15/mode, Gemini 2.5 Flash)
+## 4. Legacy Results Summary (open_loop, n=15/mode, Gemini 2.5 Flash)
 
 | Mode | ASR (%) | 95% CI | Steps | Time (s) | LLM Lat (s) | P.Err |
 |---|---|---|---|---|---|---|
@@ -119,3 +153,5 @@ Every episode logs a `failure_counts` dict keyed by `FailureCode`:
 
 Raw data: `results/sandwich_open_loop/episodes.jsonl`  
 LaTeX table: `results/sandwich_open_loop/table.tex`
+
+New paper runs should use `results/robot_robot_sim_v1/{task_id}/{method}/`.

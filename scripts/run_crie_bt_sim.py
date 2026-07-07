@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from typing import Any, Dict, List
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -65,6 +66,86 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_json_safe(v) for v in value]
     return value
+
+
+def _usage_dict(usage: Any) -> Dict[str, Any]:
+    if usage is None:
+        return {}
+    if isinstance(usage, dict):
+        return {str(k): _json_safe(v) for k, v in usage.items()}
+    try:
+        return {str(k): _json_safe(v) for k, v in dict(usage).items()}
+    except Exception:
+        return {}
+
+
+def _instrument_prompter_llm_usage(prompter) -> None:
+    """Record LLM latency and token usage at the prompter boundary."""
+    prompter._crie_bt_llm_call_latencies_s = []
+    prompter._crie_bt_llm_usage = []
+    original_query_once = prompter.query_once
+
+    def query_once(*call_args, **call_kwargs):
+        started = time.perf_counter()
+        try:
+            response, usage = original_query_once(*call_args, **call_kwargs)
+        except Exception:
+            prompter._crie_bt_llm_call_latencies_s.append(round(time.perf_counter() - started, 6))
+            raise
+        prompter._crie_bt_llm_call_latencies_s.append(round(time.perf_counter() - started, 6))
+        prompter._crie_bt_llm_usage.append(_usage_dict(usage))
+        return response, usage
+
+    prompter.query_once = query_once
+
+
+def _planner_prompter(planner):
+    return getattr(planner, "prompter", None)
+
+
+def _planner_llm_latencies(planner) -> List[float]:
+    prompter = _planner_prompter(planner)
+    if prompter is None:
+        return []
+    return list(getattr(prompter, "_crie_bt_llm_call_latencies_s", []) or [])
+
+
+def _planner_llm_usage(planner) -> List[Dict[str, Any]]:
+    prompter = _planner_prompter(planner)
+    if prompter is None:
+        return []
+    return list(getattr(prompter, "_crie_bt_llm_usage", []) or [])
+
+
+def _token_total(usages: List[Dict[str, Any]], key: str) -> int:
+    total = 0
+    for usage in usages:
+        value = usage.get(key)
+        if value is None:
+            continue
+        try:
+            total += int(value)
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _paper_method(mode: str, planner_mode: str) -> str:
+    if mode == ExecutionMode.BT_MEDIATED.value and planner_mode == "dialog":
+        return "CRIE-BT-Dialog"
+    if mode == ExecutionMode.VLM_SARM_MONITOR_PLANNER.value and planner_mode == "dialog":
+        return "VLM/SARM-Monitor-Planner-Dialog"
+    if mode == ExecutionMode.BT_MEDIATED.value and planner_mode == "chat":
+        return "CRIE-BT-Cent"
+    if mode == ExecutionMode.VLM_SARM_MONITOR_PLANNER.value and planner_mode == "chat":
+        return "VLM/SARM-Monitor-Planner-Cent"
+    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "plan":
+        return "OpenLoop-Plan"
+    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "chat":
+        return "OpenLoop-Cent"
+    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "dialog":
+        return "OpenLoop-Dialog"
+    return mode
 
 
 def _modes(value: str) -> List[str]:
@@ -244,6 +325,7 @@ def _build_legacy_prompt_planner(env, task_id: str, args):
         )
     if _uses_shared_llm_api(args):
         _install_llm_api_query_bridge(prompter, args)
+    _instrument_prompter_llm_usage(prompter)
     save_dir = args.prompt_artifact_dir
     if not save_dir and args.artifact_dir:
         save_dir = os.path.join(args.artifact_dir, "planner_prompts")
@@ -356,16 +438,30 @@ def run(args) -> List[Dict[str, Any]]:
                         uncertainty_mode=args.uncertainty,
                         max_retries=int(args.max_retries),
                     )
+                    started = time.perf_counter()
                     row = controller.run_episode(env, _task_goal(task_id, args), int(args.max_steps))
+                    wall_time_s = time.perf_counter() - started
                     final_obs = env.get_obs() if hasattr(env, "get_obs") else None
+                    llm_usage = _planner_llm_usage(planner)
+                    llm_latencies = _planner_llm_latencies(planner)
                     row["episode"] = episode
                     row["task_id"] = task_id
                     row["task_name"] = env.__class__.__name__
                     row["adapter"] = adapter
+                    row["planner_mode"] = args.planner_mode
+                    row["paper_method"] = _paper_method(mode, args.planner_mode)
+                    row["uncertainty_mode"] = args.uncertainty
+                    row["uncertainty_profile"] = args.uncertainty_profile
                     row["task_spec"] = _task_spec(env, task_id, adapter)
                     row["initial_scene"] = _describe_obs(env, obs)
                     row["final_scene"] = _describe_obs(env, final_obs)
                     row["sim_success"] = _sim_success(env, final_obs, row.get("success", False))
+                    row["wall_time_s"] = round(wall_time_s, 6)
+                    row["llm_call_latencies_s"] = llm_latencies
+                    row["llm_usage"] = llm_usage
+                    row["llm_prompt_tokens"] = _token_total(llm_usage, "prompt_tokens")
+                    row["llm_completion_tokens"] = _token_total(llm_usage, "completion_tokens")
+                    row["llm_total_tokens"] = _token_total(llm_usage, "total_tokens")
                     row["skipped"] = False
                     f.write(json.dumps(_json_safe(row), sort_keys=True) + "\n")
                     rows.append(row)
@@ -389,7 +485,11 @@ def main(argv=None) -> int:
         default="legacy_action",
         help="legacy_action uses provided EXECUTE blocks; plan/chat/dialog use existing RoCoBench LLM prompters.",
     )
-    parser.add_argument("--mode", choices=["open_loop", "direct_feedback", "bt_mediated", "all"], default="bt_mediated")
+    parser.add_argument(
+        "--mode",
+        choices=["open_loop", "direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
+        default="bt_mediated",
+    )
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", default="results/crie_bt/pack_grocery_sim.jsonl")

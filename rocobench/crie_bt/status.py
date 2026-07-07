@@ -11,6 +11,7 @@ class ExecutionMode(Enum):
     OPEN_LOOP = "open_loop"
     DIRECT_FEEDBACK = "direct_feedback"
     BT_MEDIATED = "bt_mediated"
+    VLM_SARM_MONITOR_PLANNER = "vlm_sarm_monitor_planner"
 
 
 class BTStatus(Enum):

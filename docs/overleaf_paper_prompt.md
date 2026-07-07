@@ -1,117 +1,140 @@
-# Prompt: Convert CRIE-BT Experimental Design to Paper Sections (Overleaf / LaTeX)
+# Prompt: Draft Experimental Setup and Results for CRIE-BT
 
----
+You are helping draft the experimental section of a robotics paper. Write in
+concise, precise academic English. Use passive voice for methods and active
+voice for findings. Avoid filler and keep each paragraph short.
 
-You are a scientific writing assistant helping to draft the **Experiments** and **Results** sections of a robotics paper for an IEEE/ACM venue (e.g., ICRA, CoRL, or RA-L). Write in clear, precise academic English. Use passive voice for methods, active for findings. Do not pad sentences.
+## Paper Context
 
-## Paper context
+CRIE-BT is an LLM-driven multi-robot execution framework that combines
+RoCoBench task planning with a behavior-tree runtime controller. The controller
+monitors progress, records uncertainty and failures, performs bounded local
+retries, triggers replanning, and emits human-facing explanations.
 
-We propose **CRIE-BT** (Collaborative Robot Intelligence Engine with Behavior Trees), a framework for LLM-driven multi-robot task execution with structured failure recovery. The key contribution is using a Behavior Tree (BT) to mediate between LLM planning and physical execution: the BT monitors uncertainty estimates from the skill executor and decides whether to replan via LLM, retry locally, or escalate to a human operator — rather than routing every failure directly back to the LLM.
+## Primary Methods
 
-We compare CRIE-BT against two baselines and evaluate across multiple tasks, team compositions, and LLM communication strategies.
+Only these two methods are primary paper methods:
 
----
+| Method | Runner flags |
+| --- | --- |
+| CRIE-BT-Dialog | `--mode bt_mediated --planner-mode dialog --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Dialog | `--mode vlm_sarm_monitor_planner --planner-mode dialog --adapter legacy` |
 
-## What to generate
+The VLM/SARM simulator baseline uses the same planner and executor path as
+CRIE-BT. It exposes the same monitor interface intended for the real VLM/SARM
+backend, but the simulator backend maps `env.get_reward_done()` to `DONE` and
+executor failure feedback to `FAILED`.
 
-Generate the following LaTeX sections, in order. Use `booktabs` for all tables, `\toprule / \midrule / \bottomrule`. Use `\TODO{}` as a macro (define it as `\newcommand{\TODO}[1]{\textcolor{red}{[TODO: #1]}}`) wherever a result, figure, or number needs to be filled in later.
+In simulator results, this VLM/SARM monitor-planner baseline replaces the old
+direct-feedback baseline. It is behaviorally equivalent to direct-feedback
+replanning under simulator done/failure signals, but it must be named
+VLM/SARM-Monitor-Planner because it logs monitor decisions and preserves the
+real VLM/SARM backend interface.
 
-### Sections to write
+## Ablations
 
-1. **`\section{Experimental Setup}`**
-   - **`\subsection{Conditions}`** — Describe the 2×3 condition matrix:
-     - Feedback modes (rows): No-Feedback (open-loop baseline), With-Feedback (direct LLM replanning), Feedback+BT (our method)
-     - Communication modes (columns): Centralised-with-history (single LLM prompt with conversation history), Dialog (per-agent turn-taking)
-     - Label conditions C1–C6. Emphasise that C5 and C6 are the proposed method.
-     - Include a small `tabular` showing the 3×2 matrix with condition labels.
+Only include these centralized ablations when requested by a table:
 
-   - **`\subsection{Agent Configurations}`** — Describe the four team compositions:
-     - Robot–Robot: both arms LLM-planned (primary)
-     - Human–Robot: one human operator selects subtasks, one arm LLM-planned (asymmetric teaming)
-     - Human–Human: both operators select subtasks, no LLM (upper-bound reference baseline)
-     - Single-Robot: one arm, LLM-planned (isolates individual capability)
-     - Clarify that "human" means the operator selects a subtask (e.g., PICK bread\_slice1) and the robot executes autonomously via RRT motion planning — the execution pipeline is identical across all configurations, ensuring a fair comparison.
+| Ablation | Runner flags |
+| --- | --- |
+| CRIE-BT-Cent | `--mode bt_mediated --planner-mode chat --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Cent | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
 
-   - **`\subsection{Tasks}`** — Describe all six tasks and their coordination class. Include a table:
+Do not present direct-feedback or open-loop variants as primary methods. If
+direct-feedback is mentioned, describe it only as the historical implementation
+name that is now reported as the VLM/SARM simulator baseline.
 
-     | Task | Agents | Coordination Class | Action ordering |
-     |---|---|---|---|
-     | Sandwich | 2 | Sequential-Dependent | Strict recipe order |
-     | Pack Grocery | 2 | Parallel-Independent | Flexible |
-     | Cabinet | 3 | Gated | Prerequisite-dependent |
-     | Sort | 3 | Parallel-Independent | Flexible |
-     | Sweep | 2 | Continuous-Cooperative | None (continuous) |
-     | Rope | 2 | Tightly-Coupled | Simultaneous bimanual |
+## Evaluation Scope
 
-     Define each coordination class in one sentence. Note that Cabinet and Sort have three agents, which dialog mode handles with an additional per-agent turn.
+The simulator evaluation covers four Robot-Robot tasks:
 
-   - **`\subsection{Metrics}`** — Define:
-     - **ASR** (Action Success Rate): fraction of episodes where the LLM produced a parseable action plan and the RRT skill executor physically completed it. Used as primary metric for No-Feedback conditions (where Task Completion Rate is structurally near zero because only one LLM-planned action executes per episode).
-     - **TCR** (Task Completion Rate): fraction of episodes where the full task was completed (simulator `done=True`). Primary metric for With-Feedback and Feedback+BT conditions.
-     - **95% CI** for both, computed via Wilson score interval.
-     - Efficiency: mean steps, wall-clock time, LLM latency per call.
-     - Recovery (With-Feedback and Feedback+BT only): Recovery Rate (fraction of episodes with ≥1 failure that still succeeded), Steps-to-Recovery, Unnecessary Replans.
-     - Include one sentence justifying why ASR and TCR are complementary rather than redundant.
+- Sandwich
+- Pack Grocery
+- Cabinet
+- Sort
 
-   - **`\subsection{Implementation Details}`** — One short paragraph:
-     - Simulator: MuJoCo. Robots: UR5e-Robotiq (Chad) and Panda (Dave).
-     - LLM: Gemini 2.5 Flash via Vertex AI.
-     - Motion planning: RRT via the RoCoBench skill executor.
-     - Seeds: {0, 1, 2}. Episodes per seed: \TODO{N}. Total per condition-task pair: \TODO{N\_total}.
-     - `num\_replans=2` for all LLM conditions.
+The real-world evaluation scope is collaborative medication dispensing and
+collaborative cooking. Cabinet and Sort may involve more than two robot agents,
+so use "robot-only multi-robot" rather than "two-robot" when describing the
+full simulator task set.
 
-2. **`\section{Results}`**
+## Metrics
 
-   - **`\subsection{No-Feedback Baseline (C1 vs C2)}`**
-     - One paragraph of framing text with \TODO{} for all numbers.
-     - One `booktabs` table: rows = {C1 Centralised, C2 Dialog}, columns = {ASR (\%), ASR 95\% CI, Steps, Time (s), LLM Lat (s), P.Err}. Fill every cell with `\TODO{}`.
-     - Placeholder sentence: "Centralised achieves \TODO{}\% ASR versus \TODO{}\% for Dialog ($p = \TODO{}$), with Dialog incurring \TODO{}$\times$ higher LLM latency due to per-agent turn overhead."
+Report these implemented metrics from `episodes.jsonl` and `summary.csv`:
 
-   - **`\subsection{Effect of Feedback (C1/C2 vs C3/C4)}`**
-     - One paragraph framing. Table: rows = {C1, C2, C3, C4}, columns = {ASR (\%), TCR (\%), Replans, Recovery Rate (\%), Time (s)}. All cells `\TODO{}`.
-     - Placeholder: "Adding direct feedback improves TCR from \TODO{}\% to \TODO{}\%, confirming that single-step open-loop execution is insufficient for multi-step tasks."
+- Task success rate: fraction of episodes with `sim_success=true`.
+- Controller success rate: fraction of episodes with `success=true`.
+- Completion time: mean `wall_time_s`.
+- Token consumption: mean prompt, completion, and total tokens from
+  `llm_prompt_tokens`, `llm_completion_tokens`, and `llm_total_tokens`.
+- LLM latency: mean over `llm_call_latencies_s`.
+- Recovery behavior: `replans`, `local_retries`, `failure_counts`, and event
+  summaries.
+- Monitor decisions for the VLM/SARM baseline: `VLM_SARM_MONITOR` events and
+  `payload.monitor_decision`.
 
-   - **`\subsection{CRIE-BT vs Direct Feedback (C3/C4 vs C5/C6)}`**
-     - One paragraph framing. Table: rows = {C3, C4, C5 (ours), C6 (ours)}, columns = {TCR (\%), Recovery Rate (\%), Unnecessary Replans, Steps-to-Recovery, Time (s)}. All cells `\TODO{}`.
-     - Placeholder: "Feedback+BT reduces unnecessary replans by \TODO{}\% and improves recovery rate by \TODO{} percentage points, at a wall-clock overhead of \TODO{} s per episode."
+Only report reactivity and hallucination rate when the corresponding annotation
+fields are present:
 
-   - **`\subsection{Team Composition (Robot–Robot vs Human–Robot vs Human–Human)}`**
-     - One paragraph framing. Table: rows = {Robot–Robot (C5), Human–Robot (C5), Human–Human (reference)}, columns = {Task, TCR (\%), ASR (\%), Steps}. All cells `\TODO{}`. Note that Human–Human uses no LLM.
-     - Placeholder: "Human–Human achieves \TODO{}\% TCR, setting the performance ceiling. CRIE-BT (C5, Robot–Robot) reaches \TODO{}\% of this ceiling."
+- Reactivity: `reactivity_s`, manually or externally annotated.
+- Hallucination rate: `hallucination_count / hallucination_annotation_count`.
 
-   - **`\subsection{Task Analysis by Coordination Class}`**
-     - One paragraph framing. Table: rows = 6 tasks, columns = {Class, C1 TCR, C5 TCR, Δ TCR, Recovery Rate (C5)}. All cells `\TODO{}`.
-     - Placeholder: "Sequential-Dependent tasks benefit most from Feedback+BT (\TODO{} pp improvement), while Parallel-Independent tasks show smaller gains (\TODO{} pp), consistent with the lower replanning need when ordering is flexible."
+Use placeholders with `\TODO{}` for missing numbers or annotation-only metrics.
 
-   - **`\subsection{Ablation: Communication Mode}`**
-     - One paragraph comparing Centralised vs Dialog within each feedback level. Table: rows = {C1 vs C2, C3 vs C4, C5 vs C6}, columns = {TCR Cent, TCR Dialog, LLM Lat Cent, LLM Lat Dialog, P.Err Cent, P.Err Dialog}. All cells `\TODO{}`.
-     - Placeholder: "Dialog yields \TODO{} pp higher TCR on Tightly-Coupled tasks (Rope) where per-agent negotiation aligns physical roles, but underperforms Centralised on Sequential-Dependent tasks due to parse failures (\TODO{}/\TODO{} episodes)."
+## Result Paths
 
----
+Use the canonical result root for new paper runs:
 
-## Formatting requirements
+```text
+results/robot_robot_sim_v1/{task_id}/{method}/episodes.jsonl
+results/robot_robot_sim_v1/{task_id}/{method}/analysis/
+results/robot_robot_sim_v1/{task_id}/{method}/prompts/
+```
 
-- Use `\begin{table}[t]` with `\centering`, `\caption{}`, `\label{tab:...}`.
-- Every table caption must state: task(s), LLM, number of episodes, seeds.
-- Every `\TODO{}` must include a short hint, e.g. `\TODO{ASR for C1, sandwich}`.
-- Define at the top of the LaTeX file:
-  ```latex
-  \usepackage{booktabs}
-  \usepackage{xcolor}
-  \newcommand{\TODO}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
-  \newcommand{\ours}{\dag}  % dagger marker for our method rows
-  ```
-- Mark all C5/C6 rows in tables with a $^\ours$ superscript and add a footnote: "$^\dag$ Proposed method."
-- Use `\pm` for standard deviations. Use `[lo, hi]` notation for Wilson CIs.
-- Section and subsection labels: `\label{sec:setup}`, `\label{sec:results}`, `\label{subsec:nofeedback}`, etc.
+Use method directories:
 
----
+```text
+crie_bt_dialog
+vlm_sarm_dialog
+crie_bt_cent
+vlm_sarm_cent
+```
 
-## Tone and style notes
+Treat older paths such as `results/sandwich_bt_mediated/` and
+`results/c3_to_c6_runs/` as legacy artifacts.
 
-- Do not write "In this section we..." or "As can be seen from...".
-- State results directly: "C5 achieves..." not "It can be observed that C5 achieves...".
-- Keep each paragraph to 3–5 sentences. Let tables carry the numbers; prose carries interpretation.
-- "Centralised" and "Dialog" are proper nouns in this paper; capitalise them.
-- Spell out "Behavior Tree" on first use, then use "BT".
-- Do not use "leverage", "showcase", "delve", or "robust" as filler.
+## What To Generate
+
+Generate the following LaTeX sections:
+
+1. `\section{Experimental Setup}`
+   - Describe CRIE-BT-Dialog and VLM/SARM-Monitor-Planner-Dialog as the two
+     primary methods.
+   - Describe CRIE-BT-Cent and VLM/SARM-Monitor-Planner-Cent only as
+     centralized ablations.
+   - Describe the four simulator tasks and the two real-world tasks.
+   - Define implemented metrics and mark annotation-only metrics clearly.
+   - Briefly describe simulator, robots, LLM, seeds, and episode count.
+
+2. `\section{Results}`
+   - Compare the two primary methods across simulated tasks.
+   - Include centralized ablations only in a separate ablation table.
+   - Use placeholders for metrics not yet collected.
+   - Do not invent results for real-world VLM/SARM or learned-policy execution.
+
+## Formatting Requirements
+
+- Use booktabs tables with `\toprule`, `\midrule`, and `\bottomrule`.
+- Use `\begin{table}[t]`, `\centering`, `\caption{}`, and `\label{tab:...}`.
+- Define the following at the top of the LaTeX file:
+
+```latex
+\usepackage{booktabs}
+\usepackage{xcolor}
+\newcommand{\TODO}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
+\newcommand{\ours}{\dag}
+```
+
+- Mark proposed-method rows with a `$^\ours$` superscript and add the footnote
+  `$^\dag$ Proposed method.`
+- Keep each paragraph to 3-5 sentences and let the tables carry the numbers.

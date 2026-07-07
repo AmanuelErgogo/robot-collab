@@ -2,7 +2,7 @@
 
 from .status import BTStatus, ExecutionMode, FailureCode, ProgressStage, RuntimeDecision
 from .bt_controller import BehaviorTreeController
-from .controllers import BTMediatedController, DirectFeedbackController, OpenLoopController
+from .controllers import BTMediatedController, DirectFeedbackController, OpenLoopController, VLMSARMMonitorPlannerController
 from .executor import LearnedSkillExecutor, RRTSkillExecutor, ScriptedSkillExecutor
 from .planner import LLMPlannerAdapter, ScriptedPlanner
 from .legacy_tasks import (
@@ -35,8 +35,10 @@ from .types import (
     SubtaskCommand,
     UncertaintyState,
 )
+from .vlm_sarm_monitor import BaseVLMSARMMonitorBackend, SimulatorSignalVLMSARMMonitor, VLMSARMMonitorDecision
 
 __all__ = [
+    "BaseVLMSARMMonitorBackend",
     "BTMediatedController",
     "BTDecision",
     "BTStatus",
@@ -68,9 +70,12 @@ __all__ = [
     "RuntimeEvent",
     "ScriptedPlanner",
     "ScriptedSkillExecutor",
+    "SimulatorSignalVLMSARMMonitor",
     "SkillCall",
     "SubtaskCommand",
     "UncertaintyState",
+    "VLMSARMMonitorDecision",
+    "VLMSARMMonitorPlannerController",
     "available_legacy_task_ids",
     "build_pack_grocery_crie_plan",
     "legacy_task_spec",

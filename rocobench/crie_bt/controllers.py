@@ -12,6 +12,7 @@ from .progress import ProgressMonitor
 from .status import BTStatus, ExecutionMode, RuntimeDecision
 from .types import CollaborativePlan, ExecutionContext, ExecutionFeedback, RuntimeEvent
 from .uncertainty import UncertaintyEstimator
+from .vlm_sarm_monitor import SimulatorSignalVLMSARMMonitor
 
 
 class BaseArchitectureController(object):
@@ -310,11 +311,155 @@ class BTMediatedController(BaseArchitectureController):
         return log
 
 
-def build_controller(mode: str, planner: BasePlanner, executor: BaseSkillExecutor, uncertainty_mode: str = "heuristic", max_retries: int = 1):
+class VLMSARMMonitorPlannerController(BaseArchitectureController):
+    """Monitor-planner baseline using the VLM/SARM monitor interface.
+
+    In simulation the default backend reads simulator done/failed signals.  A
+    real VLM/SARM backend can be swapped in by providing an object with the same
+    evaluate(...) method.
+    """
+
+    mode = ExecutionMode.VLM_SARM_MONITOR_PLANNER
+
+    def __init__(
+        self,
+        planner: BasePlanner,
+        executor: BaseSkillExecutor,
+        uncertainty_mode: str = "heuristic",
+        max_retries: int = 1,
+        monitor_backend=None,
+    ) -> None:
+        super(VLMSARMMonitorPlannerController, self).__init__(
+            planner,
+            executor,
+            uncertainty_mode=uncertainty_mode,
+            max_retries=max_retries,
+        )
+        self.monitor_backend = monitor_backend or SimulatorSignalVLMSARMMonitor()
+
+    def run_episode(self, env, task_goal: str, max_steps: int) -> Dict[str, Any]:
+        log = self._empty_log(self.mode, task_goal)
+        context = ExecutionContext(mode=self.mode, task_name=task_goal, max_steps=max_steps, max_retries=0)
+        observation = env.reset() if hasattr(env, "reset") else {}
+
+        self.planner.reset_episode()
+        if hasattr(self.monitor_backend, "reset_episode"):
+            self.monitor_backend.reset_episode()
+
+        plan = self._replan(log, task_goal, observation, context=context)
+        if plan is None:
+            return log
+
+        self.executor.reset(env, context)
+        step_index = 0
+
+        while log["steps"] < max_steps:
+            if step_index >= len(plan.steps):
+                decision = self._monitor(log, env, observation, None, log["steps"], max_steps)
+                if decision.is_done:
+                    log["success"] = True
+                    return log
+                if decision.is_failed and not decision.should_replan:
+                    return log
+                self.planner.notify_result(True)
+                log["replans"] += 1
+                plan = self._replan(log, task_goal, observation, context=context)
+                if plan is None:
+                    return log
+                step_index = 0
+                continue
+
+            step = plan.steps[step_index]
+            self.executor.start_skill(step.skill_call, observation)
+            feedback = None
+            while log["steps"] < max_steps:
+                feedback = self.executor.step(observation)
+                log["steps"] += 1
+                observation = self._get_observation(env, feedback, observation)
+                if feedback.status != BTStatus.RUNNING:
+                    break
+            self.executor.stop()
+
+            log["subtask_results"].append(feedback.to_dict() if feedback is not None else {"step_id": step.step_id})
+            self._record_failure(log, feedback)
+            decision = self._monitor(log, env, observation, feedback, log["steps"], max_steps)
+
+            if decision.is_done:
+                if feedback is not None and feedback.status == BTStatus.SUCCESS and not feedback.failure.is_failure:
+                    log["completed_subtasks"] += 1
+                log["success"] = True
+                return log
+
+            if decision.is_failed:
+                log["failed_subtasks"] += 1
+                if not decision.should_replan:
+                    return log
+                self.planner.notify_result(False)
+                log["replans"] += 1
+                plan = self._replan(log, task_goal, observation, feedback=feedback, context=context)
+                if plan is None:
+                    return log
+                step_index = 0
+                continue
+
+            if feedback is not None and feedback.status == BTStatus.SUCCESS and not feedback.failure.is_failure:
+                log["completed_subtasks"] += 1
+                step_index += 1
+                if step_index >= len(plan.steps):
+                    if log["steps"] >= max_steps:
+                        return log
+                    self.planner.notify_result(True)
+                    log["replans"] += 1
+                    plan = self._replan(log, task_goal, observation, context=context)
+                    if plan is None:
+                        return log
+                    step_index = 0
+                continue
+
+            if feedback is not None and feedback.status == BTStatus.FAILURE:
+                log["failed_subtasks"] += 1
+                return log
+
+        return log
+
+    def _monitor(self, log, env, observation, feedback, step_index, max_steps):
+        decision = self.monitor_backend.evaluate(
+            env,
+            observation,
+            feedback=feedback,
+            step_index=step_index,
+            max_steps=max_steps,
+        )
+        event = RuntimeEvent(
+            "VLM_SARM_MONITOR",
+            decision.message,
+            skill_call=feedback.skill_call if feedback is not None else None,
+            payload={"monitor_decision": decision.to_dict()},
+        )
+        self._record_event(log, event)
+        return decision
+
+
+def build_controller(
+    mode: str,
+    planner: BasePlanner,
+    executor: BaseSkillExecutor,
+    uncertainty_mode: str = "heuristic",
+    max_retries: int = 1,
+    monitor_backend=None,
+):
     if mode == ExecutionMode.OPEN_LOOP.value:
         return OpenLoopController(planner, executor, uncertainty_mode=uncertainty_mode, max_retries=max_retries)
     if mode == ExecutionMode.DIRECT_FEEDBACK.value:
         return DirectFeedbackController(planner, executor, uncertainty_mode=uncertainty_mode, max_retries=max_retries)
     if mode == ExecutionMode.BT_MEDIATED.value:
         return BTMediatedController(planner, executor, uncertainty_mode=uncertainty_mode, max_retries=max_retries)
+    if mode == ExecutionMode.VLM_SARM_MONITOR_PLANNER.value:
+        return VLMSARMMonitorPlannerController(
+            planner,
+            executor,
+            uncertainty_mode=uncertainty_mode,
+            max_retries=max_retries,
+            monitor_backend=monitor_backend,
+        )
     raise ValueError("Unknown CRIE-BT mode: {}".format(mode))

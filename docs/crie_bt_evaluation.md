@@ -1,54 +1,74 @@
 # CRIE-BT Evaluation
 
-CRIE-BT includes a stdlib-only scripted evaluation path for ablation studies.
-It does not require LLM API keys, learned checkpoints, MuJoCo, or LeRobot.
+CRIE-BT includes a stdlib-only scripted evaluation path for controller smoke
+tests and a RoCoBench simulator path for paper runs.
 
-## Run A Pack Evaluation
+## Primary Paper Methods
+
+| Method | Runner flags |
+| --- | --- |
+| CRIE-BT-Dialog | `--mode bt_mediated --planner-mode dialog --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Dialog | `--mode vlm_sarm_monitor_planner --planner-mode dialog --adapter legacy` |
+
+Centralized ablations:
+
+| Ablation | Runner flags |
+| --- | --- |
+| CRIE-BT-Cent | `--mode bt_mediated --planner-mode chat --adapter legacy` |
+| VLM/SARM-Monitor-Planner-Cent | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
+
+`direct_feedback` and `open_loop` remain implemented for debugging and legacy
+comparisons, but they are not part of the current paper method set.
+
+For paper reporting, the VLM/SARM simulator baseline is the replacement for
+the old direct-feedback baseline. The simulator monitor consumes done/failure
+signals and triggers replanning through the monitor interface, so it is
+behaviorally equivalent to direct-feedback in simulation while producing
+`VLM_SARM_MONITOR` event logs and matching the real VLM/SARM backend surface.
+
+## Scripted Smoke Evaluation
+
+This path does not require LLM API keys, learned checkpoints, MuJoCo, or
+LeRobot.
 
 ```bash
 python scripts/run_crie_bt_eval.py \
   --task pack \
-  --mode all \
+  --mode vlm_sarm_monitor_planner \
   --episodes 2 \
   --executor scripted \
   --planner scripted \
-  --output results/crie_bt/pack_all.jsonl
+  --output results/crie_bt/vlm_sarm_scripted.jsonl
 ```
 
-Supported modes:
+Supported scripted modes:
 
 ```text
 open_loop
 direct_feedback
 bt_mediated
+vlm_sarm_monitor_planner
 all
 ```
 
-Supported scripted tasks:
+`all` preserves the historical smoke-test set:
+`open_loop`, `direct_feedback`, and `bt_mediated`.
 
-```text
-sort
-cabinet
-rope
-sweep
-sandwich
-pack
-```
-
-Unsupported real backends are skipped gracefully with a structured skip reason.
-
-## Run CRIE-BT On RoCoBench Simulators
+## Simulator Evaluation
 
 Use the existing RoCoBench simulator tasks through the CRIE-BT runner:
 
 ```bash
 conda run --no-capture-output -n roco env MUJOCO_GL=egl \
   python scripts/run_crie_bt_sim.py \
-  --task pack \
-  --mode all \
+  --task sandwich \
+  --adapter legacy \
+  --mode vlm_sarm_monitor_planner \
+  --planner-mode dialog \
   --episodes 1 \
   --uncertainty policy_metadata \
-  --output results/crie_bt/pack_grocery_sim.jsonl
+  --output results/robot_robot_sim_v1/sandwich/vlm_sarm_dialog/episodes.jsonl \
+  --prompt-artifact-dir results/robot_robot_sim_v1/sandwich/vlm_sarm_dialog/prompts
 ```
 
 Supported simulator task IDs:
@@ -63,191 +83,35 @@ cabinet
 all
 ```
 
-For `--task pack`, `--adapter auto` uses the typed PackGrocery CRIE-BT
-contract:
+The paper task IDs are `sandwich`, `pack`, `cabinet`, and `sort`. Use
+`--adapter legacy` for all four Robot-Robot LLM simulator runs.
+
+## VLM/SARM Simulator Baseline
+
+The VLM/SARM baseline is implemented by
+`VLMSARMMonitorPlannerController` and `SimulatorSignalVLMSARMMonitor`.
+
+The monitor interface is:
 
 ```text
-PUT_OBJECT_IN_CONTAINER(object, container)
-WAIT()
+BaseVLMSARMMonitorBackend.evaluate(env, observation, feedback, step_index, max_steps)
+  -> VLMSARMMonitorDecision(status, should_replan, is_done, is_failed, evidence)
 ```
 
-Each CRIE-BT subtask is converted into an existing RoCo `SkillPlan` with one
-active agent and passive-agent `WAIT()` calls. Low-level simulator execution is
-owned by:
+In simulator runs:
 
-```text
-PackGrocerySkillPlanValidator
-RRTSkillCompiler
-rocobench.skills.executor.RRTSkillExecutor
-PackGroceryTask.step(SimAction)
-```
+| Monitor decision | Source |
+| --- | --- |
+| `DONE` | `env.get_reward_done(observation)[1]` |
+| `FAILED` | executor feedback failure or `BTStatus.FAILURE` |
+| `IN_PROGRESS` | no done or failed signal |
 
-Optional object-target overrides use existing PackGrocery object and slot names:
-
-```text
---object-targets apple:bin_front_left,banana:bin_front_right
-```
-
-For all tasks, including PackGrocery, `--adapter legacy` executes one existing
-RoCoBench raw action response through `LLMResponseParser` and the existing RRT
-executor:
-
-```bash
-conda run --no-capture-output -n roco env MUJOCO_GL=egl \
-  python scripts/run_crie_bt_sim.py \
-  --task sort \
-  --adapter legacy \
-  --legacy-response-file artifacts/crie_bt/sort_action.txt \
-  --output results/crie_bt/sort_legacy_sim.jsonl
-```
-
-The legacy response file should use the task's normal action grammar:
-
-```text
-EXECUTE
-NAME Alice ACTION ...
-NAME Bob ACTION ...
-```
-
-If no legacy response is provided, the runner emits a no-op `WAIT` action for
-each task agent. That is useful as a smoke test for parser/executor wiring; it
-does not imply the simulator task is complete.
-
-### Run Proper RoCoBench Planners With Open Loop
-
-The CRIE-BT simulator runner can call the existing RoCoBench planner prompting
-modes for open-loop execution:
-
-```text
-plan
-chat
-dialog
-```
-
-These modes require the same LLM credentials as `run_dialog.py`; by default the
-legacy prompters expect `openai_key.json` in the repository root.
-
-Centralized plan mode:
-
-```bash
-conda run --no-capture-output -n roco env MUJOCO_GL=egl \
-  python scripts/run_crie_bt_sim.py \
-  --task sandwich \
-  --planner-mode plan \
-  --mode open_loop \
-  --episodes 1 \
-  --artifact-dir artifacts/crie_bt/sandwich_plan_open_loop/executor_artifacts \
-  --prompt-artifact-dir artifacts/crie_bt/sandwich_plan_open_loop/prompts \
-  --output artifacts/crie_bt/sandwich_plan_open_loop/sandwich_sim.jsonl
-```
-
-Centralized chat-style mode:
-
-```bash
-conda run --no-capture-output -n roco env MUJOCO_GL=egl \
-  python scripts/run_crie_bt_sim.py \
-  --task sandwich \
-  --planner-mode chat \
-  --mode open_loop \
-  --episodes 1 \
-  --artifact-dir artifacts/crie_bt/sandwich_chat_open_loop/executor_artifacts \
-  --prompt-artifact-dir artifacts/crie_bt/sandwich_chat_open_loop/prompts \
-  --output artifacts/crie_bt/sandwich_chat_open_loop/sandwich_sim.jsonl
-```
-
-Per-agent dialogue mode:
-
-```bash
-conda run --no-capture-output -n roco env MUJOCO_GL=egl \
-  python scripts/run_crie_bt_sim.py \
-  --task sandwich \
-  --planner-mode dialog \
-  --mode open_loop \
-  --episodes 1 \
-  --artifact-dir artifacts/crie_bt/sandwich_dialog_open_loop/executor_artifacts \
-  --prompt-artifact-dir artifacts/crie_bt/sandwich_dialog_open_loop/prompts \
-  --output artifacts/crie_bt/sandwich_dialog_open_loop/sandwich_sim.jsonl
-```
-
-Current implementation status:
-
-```text
-implemented: plan   + open_loop
-implemented: chat   + open_loop
-implemented: dialog + open_loop
-planned:     plan   + direct_feedback
-planned:     plan   + bt_mediated
-planned:     chat   + direct_feedback
-planned:     chat   + bt_mediated
-planned:     dialog + direct_feedback
-planned:     dialog + bt_mediated
-```
-
-The planned modes need planner-state updates after CRIE-BT feedback so that
-prompt history, environment feedback, BT retry decisions, and replanning
-requests stay coherent.
-
-Fake uncertainty profiles:
-
-```text
-nominal
-medium
-low_confidence
-```
-
-The JSONL rows use the same episode schema as the scripted eval and also add
-`task_id`, `adapter`, `sim_success`, `initial_scene`, `final_scene`, and
-`task_spec`.
-
-## Failure Scenarios
-
-Use executor-level failure injection:
-
-```bash
-python scripts/run_crie_bt_eval.py \
-  --task pack \
-  --mode all \
-  --episodes 2 \
-  --executor scripted \
-  --planner scripted \
-  --failure-scenario missed_grasp \
-  --max-retries 1 \
-  --output results/crie_bt/pack_missed_grasp.jsonl
-```
-
-Available scenarios:
-
-```text
-none
-missed_grasp
-slippage
-no_progress
-target_occupied
-human_interrupt
-```
-
-## Analyze Logs
-
-```bash
-python scripts/analyze_crie_bt_eval.py \
-  results/crie_bt/pack_all.jsonl \
-  --output-dir results/crie_bt/analysis
-```
-
-Outputs:
-
-```text
-summary.csv
-summary.md
-```
-
-Aggregated fields include success rate, average steps, planner calls, replans,
-local retries, failure counts, recovery rate, explanation count, and an
-unnecessary-replanning proxy.
+This mirrors the intended real `vlm_sarm_real` interface while avoiding VLM
+dependencies in the RoCo simulator process.
 
 ## Episode Log Schema
 
-Each JSONL row contains:
+Each JSONL row contains the common controller fields:
 
 ```text
 mode
@@ -265,4 +129,38 @@ subtask_results
 explanations
 ```
 
-This common schema makes the three controller variants comparable.
+Simulator rows also add:
+
+```text
+episode
+task_id
+adapter
+planner_mode
+paper_method
+sim_success
+wall_time_s
+llm_call_latencies_s
+llm_prompt_tokens
+llm_completion_tokens
+llm_total_tokens
+initial_scene
+final_scene
+task_spec
+```
+
+The VLM/SARM baseline logs `VLM_SARM_MONITOR` events with
+`payload.monitor_decision`.
+
+## Analyze Logs
+
+```bash
+python scripts/analyze_crie_bt_eval.py \
+  results/robot_robot_sim_v1/sandwich/vlm_sarm_dialog/episodes.jsonl \
+  --output-dir results/robot_robot_sim_v1/sandwich/vlm_sarm_dialog/analysis \
+  --group-by task_method
+```
+
+Aggregated fields include success rate, task success rate, average steps, wall
+time, LLM latency, token usage, planner calls, replans, local retries, failure
+counts, recovery rate, explanation count, and annotation-backed reactivity and
+hallucination metrics when those fields are present.

@@ -24,6 +24,9 @@ Execution / recovery modes come from CRIE-BT:
 - `bt_mediated`: route progress, uncertainty, and failure signals through a
   behavior-tree runtime controller before deciding whether to continue, retry
   locally, explain, request human input, replan, or abort.
+- `vlm_sarm_monitor_planner`: execute one planner action and query the
+  VLM/SARM monitor interface for `DONE`, `FAILED`, or `IN_PROGRESS`. The
+  simulator backend uses simulator done and executor failed signals.
 
 The full intended matrix is:
 
@@ -31,22 +34,35 @@ The full intended matrix is:
 plan   + open_loop
 plan   + direct_feedback
 plan   + bt_mediated
+plan   + vlm_sarm_monitor_planner
 chat   + open_loop
 chat   + direct_feedback
 chat   + bt_mediated
+chat   + vlm_sarm_monitor_planner
 dialog + open_loop
 dialog + direct_feedback
 dialog + bt_mediated
+dialog + vlm_sarm_monitor_planner
 ```
 
 Current implementation status:
 
-- implemented: `plan + open_loop`, `chat + open_loop`, `dialog + open_loop`
-  through `LegacyPromptPlanner`;
-- planned: all `direct_feedback` and `bt_mediated` combinations with
-  `plan/chat/dialog`;
+- implemented: `plan/chat/dialog + open_loop`, `plan/chat/dialog +
+  direct_feedback`, `plan/chat/dialog + bt_mediated`, and
+  `plan/chat/dialog + vlm_sarm_monitor_planner` through `LegacyPromptPlanner`;
+- paper simulator methods: `dialog + bt_mediated` (CRIE-BT-Dialog) and
+  `dialog + vlm_sarm_monitor_planner`
+  (VLM/SARM-Monitor-Planner-Dialog);
+- centralized ablations: `chat + bt_mediated` and
+  `chat + vlm_sarm_monitor_planner`;
 - still supported for deterministic smoke tests: `legacy_action`, which consumes
   provided `EXECUTE` blocks and is not an LLM planner mode.
+
+For paper-facing simulator baselines, `vlm_sarm_monitor_planner` replaces the
+historical `direct_feedback` naming. In the simulator backend it is equivalent
+to direct-feedback replanning because the monitor reads simulator done/failure
+signals, but it logs explicit monitor decisions and keeps the real VLM/SARM
+backend interface.
 
 ## Modules
 
@@ -61,7 +77,10 @@ Current implementation status:
 - `rocobench/crie_bt/failure.py`: failure detection rules.
 - `rocobench/crie_bt/bt_nodes.py`: lightweight BT nodes.
 - `rocobench/crie_bt/bt_controller.py`: behavior-tree runtime policy.
-- `rocobench/crie_bt/controllers.py`: open-loop, direct-feedback, and BT-mediated controllers.
+- `rocobench/crie_bt/controllers.py`: open-loop, direct-feedback, BT-mediated,
+  and VLM/SARM monitor-planner controllers.
+- `rocobench/crie_bt/vlm_sarm_monitor.py`: real/simulator-compatible VLM/SARM
+  monitor backend interface and simulator done/failed backend.
 - `rocobench/crie_bt/communication.py`: research speech/overlay event abstraction.
 - `rocobench/crie_bt/failure_injection.py`: scripted failure scenarios.
 
@@ -72,8 +91,10 @@ Planner -> CollaborativePlan -> controller mode
     open_loop: execute each skill once
     direct_feedback: execute, then send failures to planner
     bt_mediated: execute through BT runtime policy
+    vlm_sarm_monitor_planner: monitor done/failed, then replan on monitor failure
 Executor -> ProgressMonitor -> UncertaintyEstimator -> FailureDetector
 BT policy -> continue / retry / explain / human input / replan / abort
+SimulatorSignalVLMSARMMonitor -> DONE / FAILED / IN_PROGRESS
 ```
 
 For legacy RoCoBench tasks, `LegacyPromptPlanner` wraps the existing prompters:
@@ -103,8 +124,10 @@ The BT controller uses conservative local recovery:
 
 ## Integration Boundary
 
-The first implementation is fully testable with scripted planners and
-executors. The simulator path now includes existing RoCo RRT execution and
-open-loop integration for `plan/chat/dialog`. The next implementation step is
-to let `direct_feedback` and `bt_mediated` call those same prompters during
-replanning while preserving prompt history and execution feedback.
+The simulator path includes existing RoCo RRT execution and `plan/chat/dialog`
+integration for open-loop, direct-feedback, BT-mediated, and VLM/SARM
+monitor-planner execution. The VLM/SARM simulator baseline already exposes the
+backend interface expected by a real monitor; the remaining transfer work is to
+replace the simulator done/failed backend with real VLM/SARM observations, wrap
+learned policy execution as a CRIE-BT `BaseSkillExecutor`, and add a real-world
+environment adapter.
