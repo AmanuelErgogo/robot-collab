@@ -8,7 +8,7 @@ Each condition is a combination of an **execution mode** (how the controller rea
 
 | Mode | Class | Description |
 |---|---|---|
-| `open_loop` | `OpenLoopController` | LLM generates a plan **once** at the start of the episode. All plan steps execute sequentially with no replanning. Failure of one step halts the episode. |
+<!-- `open_loop` removed from evaluated paper methods: open-loop (single-call, no replanning) is retained in codebase for legacy/debug but is not part of paper evaluations. -->
 | `direct_feedback` | `DirectFeedbackController` | LLM plans → executes one step → if the step fails, the failure is fed back to the LLM which replans. Loop repeats until the task succeeds or `max_steps` is reached. |
 | `bt_mediated` | `BTMediatedController` | Same replanning loop as `direct_feedback` but the decision to replan, retry locally, or request human input is governed by a Behavior Tree runtime that reads uncertainty estimates. |
 | `vlm_sarm_monitor_planner` | `VLMSARMMonitorPlannerController` | Executes one planner action, then queries a VLM/SARM monitor interface. The simulator backend maps simulator done/failed signals to monitor decisions. |
@@ -31,7 +31,7 @@ These determine how the LLM is queried inside any execution mode.
 
 |  | `plan` | `chat` | `dialog` |
 |---|---|---|---|
-| `open_loop` | implemented | implemented | implemented |
+<!-- `open_loop` row removed: open-loop is not evaluated in the paper condition matrix -->
 | `direct_feedback` | implemented | implemented | implemented |
 | `bt_mediated` | implemented | implemented | implemented |
 | `vlm_sarm_monitor_planner` | implemented | implemented | implemented |
@@ -103,11 +103,11 @@ four-task paper scope:
 
 | Metric | Formula | Interpretation |
 |---|---|---|
-| **Controller Success Rate** | `success_rate` | Episodes where `success=True`. For open-loop, this is the action-level success proxy. |
+| **Controller Success Rate** | `success_rate` | Episodes where `success=True`. |
 | **Task Completion Rate (TCR)** | `task_success_rate` | Episodes where `sim_success=True`; `env.get_reward_done()` returned done for the full task. |
-| **95% CI** | Wilson score interval when computed | Tighter than normal approximation for small n. The legacy open-loop script computes this directly; the generic analyzer reports rates. |
+| **95% CI** | Wilson score interval when computed | Tighter than normal approximation for small n. The generic analyzer reports rates. |
 
-> **Why ASR and not TCR for open_loop?** The open_loop controller executes exactly one LLM-planned action per episode. A sandwich needs ~10 actions. TCR is structurally ~0% regardless of LLM quality, so it cannot differentiate communication modes. ASR measures what the LLM actually controls: plan validity and physical executability of the first action.
+<!-- Note: legacy open-loop ASR analyses are not part of the current paper methods. -->
 
 ### 3.2 Efficiency Metrics
 
@@ -143,7 +143,7 @@ Every episode logs a `failure_counts` dict keyed by `FailureCode`:
 
 ---
 
-## 4. Legacy Results Summary (open_loop, n=15/mode, Gemini 2.5 Flash)
+## 4. Legacy Results Summary
 
 | Mode | ASR (%) | 95% CI | Steps | Time (s) | LLM Lat (s) | P.Err |
 |---|---|---|---|---|---|---|
@@ -151,7 +151,6 @@ Every episode logs a `failure_counts` dict keyed by `FailureCode`:
 | Chat (w/ History) | 100.0 | [80, 100] | 1.0 ± 0.0 | 15.6 ± 1.6 | 12.5 | 0/15 |
 | Dialog (Multi-agent) | 86.7 | [62, 96] | 0.9 ± 0.4 | 18.5 ± 11.7 | 16.0 | 2/15 |
 
-Raw data: `results/sandwich_open_loop/episodes.jsonl`  
-LaTeX table: `results/sandwich_open_loop/table.tex`
+Raw data and LaTeX tables for legacy experiments have been archived and are available on request.
 
 New paper runs should use `results/robot_robot_sim_v1/{task_id}/{method}/`.

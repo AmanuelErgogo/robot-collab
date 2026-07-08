@@ -27,8 +27,7 @@ Only two methods are primary paper methods:
 | --- | --- | --- |
 | CRIE-BT-Cent | Implemented | `--mode bt_mediated --planner-mode chat --adapter legacy`. Centralized planner with BT-mediated recovery. |
 | VLM/SARM-Monitor-Planner-Cent | Implemented | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy`. Centralized planner with the simulator-backed VLM/SARM monitor interface. |
-| OpenLoop-Dialog | Implemented smoke/ablation path | `--mode open_loop --planner-mode dialog --adapter legacy`. One planner call with no recovery. |
-| OpenLoop-Cent | Implemented smoke/ablation path | `--mode open_loop --planner-mode chat --adapter legacy`. One centralized planner call with no recovery. |
+<!-- Open-loop ablation entries removed: open-loop is not included as an evaluated ablation. -->
 
 `direct_feedback` remains available in code for debugging and historical
 comparisons, but it is not part of the current paper method set.

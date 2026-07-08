@@ -16,9 +16,9 @@ Planner / coordination modes come from the existing RoCoBench prompting stack:
 - `dialog`: per-agent dialogue prompts run in turn until an agent emits the
   final synchronized action plan.
 
-Execution / recovery modes come from CRIE-BT:
+Execution / recovery modes come from CRIE-BT (open-loop retained only for
+legacy/debug use and is not evaluated in the paper):
 
-- `open_loop`: plan once, execute once, no runtime feedback or replanning.
 - `direct_feedback`: send executor failure/progress feedback directly to the
   high-level planner for replanning.
 - `bt_mediated`: route progress, uncertainty, and failure signals through a
@@ -31,15 +31,12 @@ Execution / recovery modes come from CRIE-BT:
 The full intended matrix is:
 
 ```text
-plan   + open_loop
 plan   + direct_feedback
 plan   + bt_mediated
 plan   + vlm_sarm_monitor_planner
-chat   + open_loop
 chat   + direct_feedback
 chat   + bt_mediated
 chat   + vlm_sarm_monitor_planner
-dialog + open_loop
 dialog + direct_feedback
 dialog + bt_mediated
 dialog + vlm_sarm_monitor_planner
@@ -47,9 +44,9 @@ dialog + vlm_sarm_monitor_planner
 
 Current implementation status:
 
-- implemented: `plan/chat/dialog + open_loop`, `plan/chat/dialog +
-  direct_feedback`, `plan/chat/dialog + bt_mediated`, and
-  `plan/chat/dialog + vlm_sarm_monitor_planner` through `LegacyPromptPlanner`;
+- implemented: `plan/chat/dialog + direct_feedback`, `plan/chat/dialog +
+  bt_mediated`, and `plan/chat/dialog + vlm_sarm_monitor_planner` through
+  `LegacyPromptPlanner`; (open-loop remains available as a legacy option)
 - paper simulator methods: `dialog + bt_mediated` (CRIE-BT-Dialog) and
   `dialog + vlm_sarm_monitor_planner`
   (VLM/SARM-Monitor-Planner-Dialog);
@@ -88,7 +85,6 @@ backend interface.
 
 ```text
 Planner -> CollaborativePlan -> controller mode
-    open_loop: execute each skill once
     direct_feedback: execute, then send failures to planner
     bt_mediated: execute through BT runtime policy
     vlm_sarm_monitor_planner: monitor done/failed, then replan on monitor failure

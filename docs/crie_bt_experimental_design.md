@@ -45,8 +45,7 @@ reported name for the behavior previously closest to `DirectFeedback-Cent`.
 | CRIE-BT-Cent | `BTMediatedController` | `chat` | `--mode bt_mediated --planner-mode chat --adapter legacy` |
 | VLM/SARM-Monitor-Planner-Cent | `VLMSARMMonitorPlannerController` | `chat` | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
 
-Open-loop runs may be used as smoke tests, but they are not primary paper
-methods or main ablations.
+Open-loop runs are legacy and not part of the current paper methods or main ablations.
 
 ## 4. Result Paths
 
@@ -67,9 +66,7 @@ crie_bt_cent
 vlm_sarm_cent
 ```
 
-Legacy result directories such as `results/sandwich_open_loop/`,
-`results/sandwich_bt_mediated/`, and `results/c3_to_c6_runs/` should not be
-extended with new paper runs.
+Legacy result directories such as `results/sandwich_bt_mediated/` and `results/c3_to_c6_runs/` should not be extended with new paper runs.
 
 ## 5. Metrics
 

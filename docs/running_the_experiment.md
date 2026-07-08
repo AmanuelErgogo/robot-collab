@@ -94,7 +94,7 @@ conda run --no-capture-output -n roco env MUJOCO_GL=egl \
   python scripts/run_crie_bt_sim.py \
     --task sandwich \
     --adapter legacy \
-    --mode open_loop \
+    --mode vlm_sarm_monitor_planner \
     --episodes 1 \
     --output results/smoke/sandwich_mujoco_wait.jsonl
 ```

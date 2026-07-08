@@ -59,7 +59,7 @@ def _json_safe(value: Any) -> Any:
 
 def _modes(value: str) -> List[str]:
     if value == "all":
-        return [ExecutionMode.OPEN_LOOP.value, ExecutionMode.DIRECT_FEEDBACK.value, ExecutionMode.BT_MEDIATED.value]
+        return [ExecutionMode.DIRECT_FEEDBACK.value, ExecutionMode.BT_MEDIATED.value, ExecutionMode.VLM_SARM_MONITOR_PLANNER.value]
     return [value]
 
 
@@ -134,7 +134,7 @@ def main(argv=None) -> int:
     parser.add_argument("--task", choices=["sort", "cabinet", "rope", "sweep", "sandwich", "pack"], default="pack")
     parser.add_argument(
         "--mode",
-        choices=["open_loop", "direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
+        choices=["direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
         default="all",
     )
     parser.add_argument("--episodes", type=int, default=1)

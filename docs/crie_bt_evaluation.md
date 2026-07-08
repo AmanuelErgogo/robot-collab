@@ -17,8 +17,7 @@ Centralized ablations:
 | CRIE-BT-Cent | `--mode bt_mediated --planner-mode chat --adapter legacy` |
 | VLM/SARM-Monitor-Planner-Cent | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
 
-`direct_feedback` and `open_loop` remain implemented for debugging and legacy
-comparisons, but they are not part of the current paper method set.
+`direct_feedback` remains implemented for debugging and legacy comparisons, but it is not part of the current paper method set.
 
 For paper reporting, the VLM/SARM simulator baseline is the replacement for
 the old direct-feedback baseline. The simulator monitor consumes done/failure
@@ -44,15 +43,13 @@ python scripts/run_crie_bt_eval.py \
 Supported scripted modes:
 
 ```text
-open_loop
 direct_feedback
 bt_mediated
 vlm_sarm_monitor_planner
 all
 ```
 
-`all` preserves the historical smoke-test set:
-`open_loop`, `direct_feedback`, and `bt_mediated`.
+`all` preserves the historical smoke-test set: `direct_feedback` and `bt_mediated`.
 
 ## Simulator Evaluation
 

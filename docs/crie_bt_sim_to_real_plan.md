@@ -13,7 +13,7 @@ CRIE-BT currently has a scripted, dependency-light architecture path:
 ```text
 ScriptedPlanner
   -> CollaborativePlan
-  -> open_loop / direct_feedback / bt_mediated controller
+  -> direct_feedback / bt_mediated / vlm_sarm_monitor_planner controller
   -> ScriptedSkillExecutor
   -> ProgressMonitor / UncertaintyEstimator / FailureDetector
   -> RuntimeEvent / CommunicationManager
@@ -211,9 +211,9 @@ The runner:
 After the RRT adapter works, run comparable simulator ablations:
 
 ```text
-open_loop
 direct_feedback
 bt_mediated
+vlm_sarm_monitor_planner
 ```
 
 Suggested simulator scenarios:

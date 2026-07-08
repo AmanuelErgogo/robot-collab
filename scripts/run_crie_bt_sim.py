@@ -139,18 +139,14 @@ def _paper_method(mode: str, planner_mode: str) -> str:
         return "CRIE-BT-Cent"
     if mode == ExecutionMode.VLM_SARM_MONITOR_PLANNER.value and planner_mode == "chat":
         return "VLM/SARM-Monitor-Planner-Cent"
-    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "plan":
-        return "OpenLoop-Plan"
-    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "chat":
-        return "OpenLoop-Cent"
-    if mode == ExecutionMode.OPEN_LOOP.value and planner_mode == "dialog":
-        return "OpenLoop-Dialog"
+    # Open-loop classifications retained for legacy artifacts but not part of
+    # the primary evaluation methods exposed by the runner.
     return mode
 
 
 def _modes(value: str) -> List[str]:
     if value == "all":
-        return [ExecutionMode.OPEN_LOOP.value, ExecutionMode.DIRECT_FEEDBACK.value, ExecutionMode.BT_MEDIATED.value]
+        return [ExecutionMode.DIRECT_FEEDBACK.value, ExecutionMode.BT_MEDIATED.value, ExecutionMode.VLM_SARM_MONITOR_PLANNER.value]
     return [value]
 
 
@@ -487,7 +483,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=["open_loop", "direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
+        choices=["direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner", "all"],
         default="bt_mediated",
     )
     parser.add_argument("--episodes", type=int, default=1)
