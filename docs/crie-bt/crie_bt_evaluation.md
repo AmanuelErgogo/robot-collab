@@ -3,19 +3,23 @@
 CRIE-BT includes a stdlib-only scripted evaluation path for controller smoke
 tests and a RoCoBench simulator path for paper runs.
 
-## Primary Paper Methods
+> **Canonical runner (decided 2026-07-08):** run paper evaluations through the
+> pipeline — [running_the_experiment.md](running_the_experiment.md) and
+> [run_single_episode.md](run_single_episode.md). The `--mode` / `--planner-mode`
+> flags and `VLM/SARM-Monitor-Planner` naming below are the **deprecated legacy
+> runner** (`scripts/run_crie_bt_sim.py`), kept for reproducing prior runs. The
+> pipeline equivalents are the condition names `CRIE-BT-RR-{Cent,Dialog}` /
+> `VLM-RR-{Cent,Dialog}` (mapping in
+> [crie_bt_pipeline_merge.md](crie_bt_pipeline_merge.md)).
 
-| Method | Runner flags |
-| --- | --- |
-| CRIE-BT-Dialog | `--mode bt_mediated --planner-mode dialog --adapter legacy` |
-| VLM/SARM-Monitor-Planner-Dialog | `--mode vlm_sarm_monitor_planner --planner-mode dialog --adapter legacy` |
+## Legacy paper methods (deprecated)
 
-Centralized ablations:
-
-| Ablation | Runner flags |
-| --- | --- |
-| CRIE-BT-Cent | `--mode bt_mediated --planner-mode chat --adapter legacy` |
-| VLM/SARM-Monitor-Planner-Cent | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` |
+| Method | Legacy runner flags | Pipeline condition |
+|---|---|---|
+| CRIE-BT-Dialog | `--mode bt_mediated --planner-mode dialog --adapter legacy` | `CRIE-BT-RR-Dialog` |
+| VLM/SARM-Monitor-Planner-Dialog | `--mode vlm_sarm_monitor_planner --planner-mode dialog --adapter legacy` | `VLM-RR-Dialog` |
+| CRIE-BT-Cent | `--mode bt_mediated --planner-mode chat --adapter legacy` | `CRIE-BT-RR-Cent` |
+| VLM/SARM-Monitor-Planner-Cent | `--mode vlm_sarm_monitor_planner --planner-mode chat --adapter legacy` | `VLM-RR-Cent` |
 
 `direct_feedback` remains implemented for debugging and legacy comparisons, but it is not part of the current paper method set.
 

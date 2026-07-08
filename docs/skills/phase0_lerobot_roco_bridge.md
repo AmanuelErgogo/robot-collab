@@ -34,7 +34,7 @@ The server owns simulator state. The client owns the Gymnasium API. Normal
 `rocobench` imports remain unchanged and do not import Gymnasium or LeRobot.
 
 For a command-oriented setup and demo runbook, see
-[`phase0_setup_install_test_demos.md`](phase0_setup_install_test_demos.md).
+[`phase0_setup_install_test_demos.md`](../build-phases/phase0_setup_install_test_demos.md).
 
 ## Protocol
 

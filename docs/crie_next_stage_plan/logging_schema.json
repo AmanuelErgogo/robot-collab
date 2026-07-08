@@ -1,0 +1,166 @@
+{
+  "type": "object",
+  "required": [
+    "episode_id",
+    "stage",
+    "condition_name",
+    "controller_family",
+    "team_type",
+    "coordination_mode",
+    "skill_backend",
+    "monitor_backend",
+    "monitor_privileged",
+    "environment",
+    "planner_input_type",
+    "task_id",
+    "seed",
+    "episode_index",
+    "success",
+    "task_done",
+    "planner_calls",
+    "replans",
+    "local_retries",
+    "failed_subtasks",
+    "dialogue_turns",
+    "human_interventions",
+    "monitor_updates",
+    "wall_time_s"
+  ],
+  "properties": {
+    "episode_id": {
+      "type": "string"
+    },
+    "stage": {
+      "enum": [
+        "step1",
+        "step2",
+        "step3",
+        "ablation"
+      ]
+    },
+    "condition_name": {
+      "enum": [
+        "VLM-RR-Cent",
+        "VLM-RR-Dialog",
+        "VLM-HR-Cent",
+        "VLM-HR-Dialog",
+        "CRIE-BT-RR-Cent",
+        "CRIE-BT-RR-Dialog",
+        "CRIE-BT-HR-Cent",
+        "CRIE-BT-HR-Dialog"
+      ]
+    },
+    "controller_family": {
+      "enum": [
+        "VLM",
+        "CRIE-BT"
+      ]
+    },
+    "team_type": {
+      "enum": [
+        "RR",
+        "HR"
+      ]
+    },
+    "coordination_mode": {
+      "enum": [
+        "Cent",
+        "Dialog"
+      ]
+    },
+    "skill_backend": {
+      "enum": [
+        "RRT",
+        "LearnedSkill"
+      ]
+    },
+    "monitor_backend": {
+      "enum": [
+        "VLM-self",
+        "CodedSim",
+        "SARM"
+      ]
+    },
+    "monitor_privileged": {
+      "type": "boolean"
+    },
+    "environment": {
+      "enum": [
+        "sim",
+        "real"
+      ]
+    },
+    "planner_input_type": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "episode_index": {
+      "type": "integer"
+    },
+    "success": {
+      "type": "boolean"
+    },
+    "task_done": {
+      "type": "boolean"
+    },
+    "completion_time_s": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "num_steps": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "planner_calls": {
+      "type": "integer"
+    },
+    "replans": {
+      "type": "integer"
+    },
+    "local_retries": {
+      "type": "integer"
+    },
+    "failed_subtasks": {
+      "type": "integer"
+    },
+    "dialogue_turns": {
+      "type": "integer"
+    },
+    "human_interventions": {
+      "type": "integer"
+    },
+    "monitor_updates": {
+      "type": "integer"
+    },
+    "llm_prompt_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "llm_completion_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "llm_total_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "wall_time_s": {
+      "type": "number"
+    }
+  }
+}

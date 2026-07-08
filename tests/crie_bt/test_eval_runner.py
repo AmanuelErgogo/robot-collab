@@ -15,7 +15,11 @@ def test_eval_runner_writes_valid_jsonl(tmp_path):
         "--output", str(output),
     ]) == 0
     rows = [json.loads(line) for line in output.read_text().splitlines()]
-    assert {row["mode"] for row in rows} == {"open_loop", "direct_feedback", "bt_mediated"}
+    # open_loop was removed from the evaluated paper methods; --mode all now
+    # covers the direct-feedback baseline, the bt-mediated method, and the
+    # vlm/sarm monitor-planner.
+    assert {row["mode"] for row in rows} == {
+        "direct_feedback", "bt_mediated", "vlm_sarm_monitor_planner"}
     summaries = summarize(str(output))
     assert len(summaries) == 3
 

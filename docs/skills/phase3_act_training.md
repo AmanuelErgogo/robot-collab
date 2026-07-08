@@ -5,7 +5,7 @@ resulting checkpoint can be inspected and reloaded independently.  It does not
 run closed-loop simulator rollout; that is Phase 4.
 
 For a short runnable path, see
-[`docs/phase3_short_tutorial.md`](phase3_short_tutorial.md).
+[`docs/skills/phase3_short_tutorial.md`](phase3_short_tutorial.md).
 
 The implementation keeps these boundaries separate:
 

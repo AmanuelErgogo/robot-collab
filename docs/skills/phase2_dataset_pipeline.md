@@ -5,7 +5,7 @@ for `PackGroceryTask` into a validated staged expert dataset with replay and
 LeRobot export tooling.
 
 For setup, install, test, demo, and tutorial commands, see
-[`docs/phase2_setup_install_test_demos.md`](phase2_setup_install_test_demos.md).
+[`docs/build-phases/phase2_setup_install_test_demos.md`](../build-phases/phase2_setup_install_test_demos.md).
 
 The implementation keeps three boundaries separate:
 

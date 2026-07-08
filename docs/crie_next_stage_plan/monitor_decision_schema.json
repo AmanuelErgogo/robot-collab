@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "required": [
+    "stage_id",
+    "status",
+    "progress_score",
+    "monitor_backend",
+    "privileged"
+  ],
+  "properties": {
+    "stage_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "not_started",
+        "in_progress",
+        "stage_done",
+        "task_done",
+        "stuck",
+        "failed",
+        "timeout"
+      ]
+    },
+    "progress_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "should_replan": {
+      "type": "boolean"
+    },
+    "should_retry": {
+      "type": "boolean"
+    },
+    "is_stage_done": {
+      "type": "boolean"
+    },
+    "is_task_done": {
+      "type": "boolean"
+    },
+    "message": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "object"
+    },
+    "monitor_backend": {
+      "enum": [
+        "CodedSim",
+        "SARM"
+      ]
+    },
+    "privileged": {
+      "type": "boolean"
+    }
+  }
+}

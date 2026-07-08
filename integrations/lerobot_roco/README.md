@@ -29,4 +29,4 @@ The bridge protocol is versioned (`0.1`) and transfers NumPy arrays through an
 explicit safe encoding. It does not use pickle over RPC.
 
 For full setup, install, test, and demo commands, see
-[`docs/phase0_setup_install_test_demos.md`](../../docs/phase0_setup_install_test_demos.md).
+[`docs/build-phases/phase0_setup_install_test_demos.md`](../../docs/build-phases/phase0_setup_install_test_demos.md).

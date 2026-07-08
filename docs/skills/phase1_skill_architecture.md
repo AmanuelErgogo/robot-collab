@@ -1,7 +1,7 @@
 # Phase 1 Skill Architecture
 
 For setup, installation, tests, demos, and debugging steps, see
-[`phase1_setup_install_test_demos.md`](phase1_setup_install_test_demos.md).
+[`phase1_setup_install_test_demos.md`](../build-phases/phase1_setup_install_test_demos.md).
 
 ## Before
 

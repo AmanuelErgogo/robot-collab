@@ -208,7 +208,7 @@ class ReleaseValidator:
             "benchmark/cards/environment_card.md",
             "benchmark/cards/dataset_card.md",
             "benchmark/cards/model_card_template.md",
-            "docs/phase8_benchmark_release.md",
+            "docs/build-phases/phase8_benchmark_release.md",
         ]
         missing = [path for path in required if not os.path.exists(os.path.join(REPO_ROOT, path))]
         if missing:
@@ -230,7 +230,7 @@ class ReleaseValidator:
             "benchmark/rocobench_pack_v1",
             "benchmark/manifests",
             "benchmark/cards",
-            "docs/phase8_benchmark_release.md",
+            "docs/build-phases/phase8_benchmark_release.md",
             "scripts/evaluate_rocobench.py",
             "scripts/validate_rocobench_release.py",
             "scripts/compare_rocobench_runs.py",

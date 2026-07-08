@@ -2,22 +2,33 @@
 
 ## 1. Experimental Conditions
 
-Each condition is a combination of an **execution mode** (how the controller reacts to failure) and a **communication mode** (how the LLM is queried).
+Each condition is a combination of a **method family** (baseline vs CRIE-BT),
+a **team type** (Robot-Robot or Human-Robot), and a **communication mode**
+(centralized chat or distributed dialog). The current simulator evaluation
+focuses on Robot-Robot teams and implements these choices through runner
+execution modes.
 
-### 1.1 Execution Modes
+### 1.1 Method Families
+
+| Family | Description |
+|---|---|
+| Baseline | The VLM directly handles task decomposition, subtask allocation, and execution-level control. After each subtask, it decides whether to execute the next subtask or replan when execution fails or when another agent perturbs the plan, e.g. a human or robot starts a different subtask. |
+| CRIE-BT / Ours | The VLM decomposes the task, allocates a subtask once, and emits that subtask for Behavior Tree execution. The Behavior Tree plus progress monitor then handles execution monitoring, local recovery, and replanning triggers. |
+
+### 1.2 Execution Modes
 
 | Mode | Class | Description |
 |---|---|---|
 <!-- `open_loop` removed from evaluated paper methods: open-loop (single-call, no replanning) is retained in codebase for legacy/debug but is not part of paper evaluations. -->
-| `direct_feedback` | `DirectFeedbackController` | LLM plans → executes one step → if the step fails, the failure is fed back to the LLM which replans. Loop repeats until the task succeeds or `max_steps` is reached. |
-| `bt_mediated` | `BTMediatedController` | Same replanning loop as `direct_feedback` but the decision to replan, retry locally, or request human input is governed by a Behavior Tree runtime that reads uncertainty estimates. |
-| `vlm_sarm_monitor_planner` | `VLMSARMMonitorPlannerController` | Executes one planner action, then queries a VLM/SARM monitor interface. The simulator backend maps simulator done/failed signals to monitor decisions. |
+| `direct_feedback` | `DirectFeedbackController` | Legacy reactive baseline/debug mode. The LLM plans one step, the executor runs it, and failures are fed directly back to the LLM for replanning until the task succeeds or `max_steps` is reached. |
+| `bt_mediated` | `BTMediatedController` | CRIE-BT implementation. The VLM proposes the next subtask, while a Behavior Tree runtime and progress monitor decide whether to continue, retry locally, or request replanning. |
+| `vlm_sarm_monitor_planner` | `VLMSARMMonitorPlannerController` | Paper-facing baseline implementation. The VLM planner controls subtask selection and replanning, while a VLM/SARM-style monitor reports `DONE`, `FAILED`, or `IN_PROGRESS`; in simulation this monitor maps simulator done/failed signals into the same interface. |
 
 **Paper scope**: the two primary methods are the Dialog variants of
 `bt_mediated` and `vlm_sarm_monitor_planner`; the Centralised variants are
 ablations.
 
-### 1.2 Communication Modes
+### 1.3 Communication Modes
 
 These determine how the LLM is queried inside any execution mode.
 
@@ -27,7 +38,7 @@ These determine how the LLM is queried inside any execution mode.
 | `chat` | `SingleThreadPrompter` (with history) | Centralised prompt that carries the **full conversation history** from prior replans. The LLM can reason about what was tried before. Slower due to growing prompt size. |
 | `dialog` | `DialogPrompter` | **Multi-turn per-agent negotiation**. Chad and Dave alternate sending messages; each sees the other's last message. Produces richer coordination but is the most expensive and prone to parse failures (one agent may submit a single-agent block). |
 
-### 1.3 Condition Matrix
+### 1.4 Condition Matrix
 
 |  | `plan` | `chat` | `dialog` |
 |---|---|---|---|

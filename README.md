@@ -5,13 +5,13 @@ extended with:
 
 - **CRIE-BT**: a behavior-tree controller architecture for skill sequencing
   and runtime feedback/replanning, evaluated via the sandwich-task benchmark
-  under [results/](results/) (see [docs/crie_bt_architecture.md](docs/crie_bt_architecture.md)
-  and [docs/crie_bt_experimental_design.md](docs/crie_bt_experimental_design.md)).
+  under [results/](results/) (see [docs/crie-bt/crie_bt_architecture.md](docs/crie-bt/crie_bt_architecture.md)
+  and [docs/crie-bt/crie_bt_experimental_design.md](docs/crie-bt/crie_bt_experimental_design.md)).
 - **CRIE-Bench**: a unified collect/train/test/skills CLI for learned
   subtask skills — single-arm policies (ACT, BC-NN, Octo) that replace the
   scripted RRT planner for primitives like PICK, PLACE, and STACK_ON (see
-  [docs/crie_bench.md](docs/crie_bench.md) and
-  [docs/learned_subtask_skills.md](docs/learned_subtask_skills.md)).
+  [docs/paper/crie_bench.md](docs/paper/crie_bench.md) and
+  [docs/skills/learned_subtask_skills.md](docs/skills/learned_subtask_skills.md)).
 - A bridge/dataset/training pipeline (Phases 0-8, see the Phase Guide below)
   connecting the Python 3.8 MuJoCo simulator to modern LeRobot/Octo tooling.
 
@@ -77,21 +77,25 @@ The repo scripts already handle LeRobot import-path differences across released
 versions, so you do not need to normalize that manually.
 
 ## Phase Guide
+**All documentation is indexed in [docs/README.md](docs/README.md)** — a
+topic-organized map (getting-started / crie-bt / skills / build-phases / paper)
+with a guide for where new docs go.
+
 Use the classic setup above if you only want the LLM-driven dialog/planning
 runs. For the full bridge, dataset, training, and learned-skill pipeline,
 use these runbooks:
 
-- Phase 0 bridge setup and smoke demos: [docs/phase0_setup_install_test_demos.md](docs/phase0_setup_install_test_demos.md)
-- Phase 1 skill planning and execution: [docs/phase1_setup_install_test_demos.md](docs/phase1_setup_install_test_demos.md)
-- Phase 2 expert dataset pipeline: [docs/phase2_setup_install_test_demos.md](docs/phase2_setup_install_test_demos.md)
-- Phase 3 ACT training: [docs/phase3_short_tutorial.md](docs/phase3_short_tutorial.md)
-- Phase 4 direct ACT rollout through the bridge: [docs/phase4_direct_inference.md](docs/phase4_direct_inference.md)
-- Phase 5 learned executor and deployment boundary: [docs/phase5_short_tutorial.md](docs/phase5_short_tutorial.md)
-- Unified collect/train/test/skills workflow: [docs/crie_bench.md](docs/crie_bench.md)
-- Environment construction tutorial: [docs/environment_construction_tutorial.md](docs/environment_construction_tutorial.md)
-- CRIE-BT architecture and evaluation: [docs/crie_bt_architecture.md](docs/crie_bt_architecture.md), [docs/crie_bt_evaluation.md](docs/crie_bt_evaluation.md), [docs/crie_bt_api.md](docs/crie_bt_api.md), [docs/crie_bt_sim_to_real_plan.md](docs/crie_bt_sim_to_real_plan.md)
-- Phase 8 benchmark release and validation: [docs/phase8_benchmark_release.md](docs/phase8_benchmark_release.md)
-- Phase 8 full benchmark demo: [docs/phase8_demo_tutorial.md](docs/phase8_demo_tutorial.md)
+- Phase 0 bridge setup and smoke demos: [docs/build-phases/phase0_setup_install_test_demos.md](docs/build-phases/phase0_setup_install_test_demos.md)
+- Phase 1 skill planning and execution: [docs/build-phases/phase1_setup_install_test_demos.md](docs/build-phases/phase1_setup_install_test_demos.md)
+- Phase 2 expert dataset pipeline: [docs/build-phases/phase2_setup_install_test_demos.md](docs/build-phases/phase2_setup_install_test_demos.md)
+- Phase 3 ACT training: [docs/skills/phase3_short_tutorial.md](docs/skills/phase3_short_tutorial.md)
+- Phase 4 direct ACT rollout through the bridge: [docs/skills/phase4_direct_inference.md](docs/skills/phase4_direct_inference.md)
+- Phase 5 learned executor and deployment boundary: [docs/skills/phase5_short_tutorial.md](docs/skills/phase5_short_tutorial.md)
+- Unified collect/train/test/skills workflow: [docs/paper/crie_bench.md](docs/paper/crie_bench.md)
+- Environment construction tutorial: [docs/getting-started/environment_construction_tutorial.md](docs/getting-started/environment_construction_tutorial.md)
+- CRIE-BT architecture and evaluation: [docs/crie-bt/crie_bt_architecture.md](docs/crie-bt/crie_bt_architecture.md), [docs/crie-bt/crie_bt_evaluation.md](docs/crie-bt/crie_bt_evaluation.md), [docs/crie-bt/crie_bt_api.md](docs/crie-bt/crie_bt_api.md), [docs/crie-bt/crie_bt_sim_to_real_plan.md](docs/crie-bt/crie_bt_sim_to_real_plan.md)
+- Phase 8 benchmark release and validation: [docs/build-phases/phase8_benchmark_release.md](docs/build-phases/phase8_benchmark_release.md)
+- Phase 8 full benchmark demo: [docs/build-phases/phase8_demo_tutorial.md](docs/build-phases/phase8_demo_tutorial.md)
 
 ### Verified debug path
 The following phase commands were re-run during this verification pass:
@@ -138,7 +142,7 @@ pip install -e ".[visualization]"
 ```
 
 ### Acquire OpenAI or Gemini credentials
-See [`docs/llm_setup_and_credentials.md`](docs/llm_setup_and_credentials.md)
+See [`docs/getting-started/llm_setup_and_credentials.md`](docs/getting-started/llm_setup_and_credentials.md)
 for the exact lookup order and runner-specific behavior. In short, the legacy
 `run_dialog.py` path still reads `./openai_key.json`, while newer paths that
 call `llm_api.py` can use OpenAI environment variables or Gemini/Vertex ADC.

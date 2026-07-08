@@ -1,0 +1,21 @@
+{
+  "created": "2026-07-08T04:03:24.906055Z",
+  "purpose": "CRIE-BT/SARM next-stage implementation and paper writing artifacts",
+  "files": [
+    "00_README.md",
+    "01_locked_decisions.md",
+    "02_condition_taxonomy.md",
+    "03_architecture_spec.md",
+    "04_interface_api_spec.md",
+    "05_implementation_plan.md",
+    "06_experiment_matrix.md",
+    "07_metrics_and_logging_spec.md",
+    "08_paper_outline.md",
+    "09_methods_section_draft.md",
+    "10_coding_agent_prompt.md",
+    "condition_registry.yaml",
+    "experiment_matrix.csv",
+    "logging_schema.json",
+    "monitor_decision_schema.json"
+  ]
+}

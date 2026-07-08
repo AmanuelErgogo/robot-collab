@@ -256,7 +256,7 @@ class PointCloud:
 
     @validator("xyz_pts")
     @classmethod
-    def same_len(cls, v: np.ndarray, values, field, config):
+    def same_len(cls, v: np.ndarray, values):  # pydantic v2: drop unused field/config params
         if "rgb_pts" in values and len(values["rgb_pts"]) != len(v):
             raise ValueError("`len(rgb_pts) != len(xyz_pts)`")
         if "segmentation_pts" in values and not all(

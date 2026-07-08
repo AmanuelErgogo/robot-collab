@@ -68,37 +68,6 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
-def _usage_dict(usage: Any) -> Dict[str, Any]:
-    if usage is None:
-        return {}
-    if isinstance(usage, dict):
-        return {str(k): _json_safe(v) for k, v in usage.items()}
-    try:
-        return {str(k): _json_safe(v) for k, v in dict(usage).items()}
-    except Exception:
-        return {}
-
-
-def _instrument_prompter_llm_usage(prompter) -> None:
-    """Record LLM latency and token usage at the prompter boundary."""
-    prompter._crie_bt_llm_call_latencies_s = []
-    prompter._crie_bt_llm_usage = []
-    original_query_once = prompter.query_once
-
-    def query_once(*call_args, **call_kwargs):
-        started = time.perf_counter()
-        try:
-            response, usage = original_query_once(*call_args, **call_kwargs)
-        except Exception:
-            prompter._crie_bt_llm_call_latencies_s.append(round(time.perf_counter() - started, 6))
-            raise
-        prompter._crie_bt_llm_call_latencies_s.append(round(time.perf_counter() - started, 6))
-        prompter._crie_bt_llm_usage.append(_usage_dict(usage))
-        return response, usage
-
-    prompter.query_once = query_once
-
-
 def _planner_prompter(planner):
     return getattr(planner, "prompter", None)
 
@@ -226,143 +195,46 @@ def _build_pack_executor(env, args):
     )
 
 
-def _uses_shared_llm_api(args) -> bool:
-    return str(args.llm_source).strip().lower().startswith("gemini")
-
-
-def _prompter_llm_source(args) -> str:
-    if _uses_shared_llm_api(args):
-        return "gpt-4"
-    return args.llm_source
-
-
-def _install_llm_api_query_bridge(prompter, args) -> None:
-    from llm_api import create_llm_client
-
-    client = create_llm_client(args.llm_source, api_key_path=(args.api_key_path or None))
-
-    def query_once(system_prompt, user_prompt="", max_query=None):
-        del max_query
-        messages = [{"role": "system", "content": system_prompt}]
-        if user_prompt:
-            messages.append({"role": "user", "content": user_prompt})
-        response = client.generate(
-            messages=messages,
-            max_tokens=int(args.max_tokens),
-            temperature=float(args.temperature),
-        )
-        print("======= response ======= \n ", response.text)
-        print("======= usage ======= \n ", response.usage)
-        return response.text, response.usage
-
-    prompter.query_once = query_once
-
-
 def _build_legacy_prompt_planner(env, task_id: str, args):
-    from prompting import DialogPrompter, FeedbackManager, LLMResponseParser, SingleThreadPrompter
-    from rocobench import MultiArmRRT
+    # Prompter/planner construction is shared with the pipeline via roco_runtime
+    # so there is a single source for the real-LLM wiring.
+    from rocobench.crie_bt.roco_runtime import build_legacy_prompt_planner
 
-    response_keywords = ["NAME", "ACTION"]
-    if args.llm_output_mode == "action_and_path":
-        response_keywords.append("PATH")
-    parser = LLMResponseParser(
-        env,
-        args.llm_output_mode,
-        env.robot_name_map,
-        response_keywords,
-        int(args.direct_waypoints),
-        use_prepick=getattr(env, "use_prepick", False),
-        use_preplace=getattr(env, "use_preplace", False),
-        split_parsed_plans=False,
-    )
-    rrt_planner = MultiArmRRT(
-        env.physics,
-        robots=env.get_sim_robots(),
-        graspable_object_names=env.get_graspable_objects(),
-        allowed_collision_pairs=env.get_allowed_collision_pairs(),
-    )
-    feedback_manager = FeedbackManager(
-        env=env,
-        planner=rrt_planner,
-        llm_output_mode=args.llm_output_mode,
-        robot_name_map=env.robot_name_map,
-        step_std_threshold=getattr(env, "waypoint_std_threshold", 0.1),
-        max_failed_waypoints=int(args.max_failed_waypoints),
-    )
-    if args.planner_mode in ("plan", "chat"):
-        prompter = SingleThreadPrompter(
-            env=env,
-            parser=parser,
-            feedback_manager=feedback_manager,
-            max_tokens=int(args.max_tokens),
-            debug_mode=False,
-            use_waypoints=(args.llm_output_mode == "action_and_path"),
-            use_history=(not args.no_history),
-            num_replans=int(args.num_replans),
-            comm_mode=args.planner_mode,
-            temperature=float(args.temperature),
-            llm_source=_prompter_llm_source(args),
-        )
-    else:
-        prompter = DialogPrompter(
-            env=env,
-            parser=parser,
-            feedback_manager=feedback_manager,
-            max_tokens=int(args.max_tokens),
-            debug_mode=False,
-            robot_name_map=env.robot_name_map,
-            max_calls_per_round=int(args.max_calls_per_round),
-            use_waypoints=(args.llm_output_mode == "action_and_path"),
-            use_history=(not args.no_history),
-            use_feedback=(not args.no_feedback),
-            num_replans=int(args.num_replans),
-            temperature=float(args.temperature),
-            llm_source=_prompter_llm_source(args),
-        )
-    if _uses_shared_llm_api(args):
-        _install_llm_api_query_bridge(prompter, args)
-    _instrument_prompter_llm_usage(prompter)
     save_dir = args.prompt_artifact_dir
     if not save_dir and args.artifact_dir:
         save_dir = os.path.join(args.artifact_dir, "planner_prompts")
     if not save_dir:
         # Default: store prompts alongside the output JSONL so they are easy to find.
         save_dir = os.path.splitext(os.path.abspath(args.output))[0] + "_prompts"
-    os.makedirs(save_dir, exist_ok=True)
-    return LegacyPromptPlanner(
-        task_id=task_id,
-        prompter=prompter,
-        planner_mode=args.planner_mode,
-        agent_names=agent_names_for_env(env),
+    return build_legacy_prompt_planner(
+        env,
+        task_id,
+        args.planner_mode,
+        llm_source=args.llm_source,
+        api_key_path=args.api_key_path,
         save_dir=save_dir,
+        llm_output_mode=args.llm_output_mode,
+        direct_waypoints=args.direct_waypoints,
+        max_failed_waypoints=args.max_failed_waypoints,
+        max_tokens=args.max_tokens,
+        num_replans=args.num_replans,
+        temperature=args.temperature,
+        max_calls_per_round=args.max_calls_per_round,
+        use_history=(not args.no_history),
+        use_feedback=(not args.no_feedback),
         plan_horizon=args.plan_horizon,
     )
 
 
 def _build_legacy_executor(env, task_id: str, args):
-    from prompting.parser import LLMResponseParser
-    from rocobench.skills import RRTSkillExecutor
+    from rocobench.crie_bt.roco_runtime import build_legacy_rrt_executor
 
-    legacy_parser = LLMResponseParser(
+    return build_legacy_rrt_executor(
         env,
-        "action_only",
-        env.robot_name_map,
-        ["NAME", "ACTION"],
-        use_prepick=getattr(env, "use_prepick", False),
-        use_preplace=getattr(env, "use_preplace", False),
-    )
-    legacy_executor = RRTSkillExecutor(
-        env=env,
-        robots=env.get_sim_robots(),
-        max_sim_steps=int(args.max_sim_steps),
-    )
-    return LegacyTaskRRTExecutorAdapter(
-        env=env,
-        task_id=task_id,
-        parser=legacy_parser,
-        executor=legacy_executor,
+        task_id,
+        max_sim_steps=args.max_sim_steps,
         artifact_dir=args.artifact_dir,
-        uncertainty_reporter=FakeLegacyUncertaintyReporter(args.uncertainty_profile),
+        uncertainty_profile=args.uncertainty_profile,
     )
 
 

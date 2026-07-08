@@ -138,19 +138,21 @@ class SimAction:
     @validator("ctrl_vals", "qpos_target",)
     def _validate_vals(cls, v):
         if v is None:
-            return []  
+            return []
         assert isinstance(v, List) or isinstance(v, np.ndarray), f"Invalid idxs, got {type(v)}"
         if len(v) > 0:
-            assert all([isinstance(i, np.float32) for i in v]), f"Invalid value, got {type(v)}"
-        return v 
+            # Accept any numpy/python float dtype; __post_init__ coerces to float32.
+            assert all([isinstance(i, (np.floating, float)) for i in v]), f"Invalid value, got {type(v)}"
+        return v
 
     @validator("ctrl_idxs", "qpos_idxs")
     def _validate_idxs(cls, v):
         if v is None:
-            return [] 
+            return []
         assert isinstance(v, List) or isinstance(v, np.ndarray), f"Invalid idxs, got {type(v)}"
         if len(v) > 0:
-            assert all([isinstance(i, np.int32) for i in v]), f"Invalid idx, got {type(v)}"
+            # Accept any numpy/python integer dtype; __post_init__ coerces to int32.
+            assert all([isinstance(i, (np.integer, int)) for i in v]), f"Invalid idx, got {type(v)}"
         return v
 
     def __post_init__(self):

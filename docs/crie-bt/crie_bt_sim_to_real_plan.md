@@ -541,8 +541,8 @@ Real robot:
 
 Docs and evaluation:
 
-- [x] Extend `docs/crie_bt_api.md` with simulator adapter examples.
-- [x] Extend `docs/crie_bt_evaluation.md` with simulator commands.
+- [x] Extend `docs/crie-bt/crie_bt_api.md` with simulator adapter examples.
+- [x] Extend `docs/crie-bt/crie_bt_evaluation.md` with simulator commands.
 - [ ] Extend evaluation docs with hardware commands once the real runner exists.
 - [ ] Add safety checklist for hardware runs.
 - [ ] Keep real robot logs free of private IPs, credentials, and raw images by

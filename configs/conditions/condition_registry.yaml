@@ -1,0 +1,139 @@
+conditions:
+  VLM-RR-Cent:
+    code_name: vlm_rr_cent
+    controller_family: VLM
+    team_type: RR
+    coordination_mode: Cent
+    baseline: true
+    explicit_monitor: false
+    default_monitor_backend:
+      step1: VLM-self
+      step2: VLM-self
+      step3: VLM-self
+    planner_input_type: image_status_history
+    description: Monolithic VLM centralized robot-robot planner that self-monitors from image/status feedback.
+
+  VLM-RR-Dialog:
+    code_name: vlm_rr_dialog
+    controller_family: VLM
+    team_type: RR
+    coordination_mode: Dialog
+    baseline: true
+    explicit_monitor: false
+    default_monitor_backend:
+      step1: VLM-self
+      step2: VLM-self
+      step3: VLM-self
+    planner_input_type: image_status_history_dialogue
+    description: Monolithic VLM robot-robot dialog/distributed planner that self-monitors from image/status/dialogue feedback.
+
+  VLM-HR-Cent:
+    code_name: vlm_hr_cent
+    controller_family: VLM
+    team_type: HR
+    coordination_mode: Cent
+    baseline: true
+    explicit_monitor: false
+    default_monitor_backend:
+      step1: VLM-self
+      step2: VLM-self
+      step3: VLM-self
+    planner_input_type: image_status_history
+    description: Monolithic VLM centralized human-robot planner. Sends robot skill calls and human instructions.
+
+  VLM-HR-Dialog:
+    code_name: vlm_hr_dialog
+    controller_family: VLM
+    team_type: HR
+    coordination_mode: Dialog
+    baseline: true
+    explicit_monitor: false
+    default_monitor_backend:
+      step1: VLM-self
+      step2: VLM-self
+      step3: VLM-self
+    planner_input_type: image_status_history_dialogue
+    description: Robot-side VLM planner coordinates with an independent human collaborator through dialogue.
+
+  CRIE-BT-RR-Cent:
+    code_name: criebt_rr_cent
+    controller_family: CRIE-BT
+    team_type: RR
+    coordination_mode: Cent
+    baseline: false
+    explicit_monitor: true
+    default_monitor_backend:
+      step1: CodedSim
+      step2: CodedSim
+      step3: SARM
+    planner_input_type: image_status_history_plus_monitor
+    description: Centralized CRIE-BT controller for robot-robot teams with explicit progress monitor.
+
+  CRIE-BT-RR-Dialog:
+    code_name: criebt_rr_dialog
+    controller_family: CRIE-BT
+    team_type: RR
+    coordination_mode: Dialog
+    baseline: false
+    explicit_monitor: true
+    default_monitor_backend:
+      step1: CodedSim
+      step2: CodedSim
+      step3: SARM
+    planner_input_type: image_status_history_dialogue_plus_monitor
+    description: Dialog/distributed CRIE-BT controllers for robot-robot teams, each with explicit progress monitoring.
+
+  CRIE-BT-HR-Cent:
+    code_name: criebt_hr_cent
+    controller_family: CRIE-BT
+    team_type: HR
+    coordination_mode: Cent
+    baseline: false
+    explicit_monitor: true
+    default_monitor_backend:
+      step1: CodedSim
+      step2: CodedSim
+      step3: SARM
+    planner_input_type: image_status_history_plus_monitor
+    description: Centralized CRIE-BT controller for human-robot teams with robot skill calls and human instructions.
+
+  CRIE-BT-HR-Dialog:
+    code_name: criebt_hr_dialog
+    controller_family: CRIE-BT
+    team_type: HR
+    coordination_mode: Dialog
+    baseline: false
+    explicit_monitor: true
+    default_monitor_backend:
+      step1: CodedSim
+      step2: CodedSim
+      step3: SARM
+    planner_input_type: image_status_history_dialogue_plus_monitor
+    description: Robot-side CRIE-BT controller coordinates with independent human collaborator through dialogue.
+
+stages:
+  step1:
+    team_types: [RR]
+    environment: sim
+    skill_backend: RRT
+    criebt_monitor_backend: CodedSim
+    baseline_monitor_backend: VLM-self
+    tasks: [sandwich, pack, cabinet, sort]
+
+  step2:
+    team_types: [HR]
+    environment: sim
+    skill_backend: RRT
+    criebt_monitor_backend: CodedSim
+    baseline_monitor_backend: VLM-self
+    human_interface: terminal
+    tasks: [medication_sim, cooking_sim]
+
+  step3:
+    team_types: [HR]
+    environment: real
+    skill_backend: LearnedSkill
+    criebt_monitor_backend: SARM
+    baseline_monitor_backend: VLM-self
+    human_interface: terminal_or_speech
+    tasks: [medication_real, cooking_real]

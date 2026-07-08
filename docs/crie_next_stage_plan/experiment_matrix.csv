@@ -1,0 +1,13 @@
+stage,condition_name,controller_family,team_type,coordination_mode,skill_backend,monitor_backend,monitor_privileged,environment,planner_input_type,tasks
+step1,VLM-RR-Cent,VLM,RR,Cent,RRT,VLM-self,false,sim,image/status/history,sandwich;pack;cabinet;sort
+step1,VLM-RR-Dialog,VLM,RR,Dialog,RRT,VLM-self,false,sim,image/status/history/dialogue,sandwich;pack;cabinet;sort
+step1,CRIE-BT-RR-Cent,CRIE-BT,RR,Cent,RRT,CodedSim,true,sim,image/status/history + monitor,sandwich;pack;cabinet;sort
+step1,CRIE-BT-RR-Dialog,CRIE-BT,RR,Dialog,RRT,CodedSim,true,sim,image/status/history/dialogue + monitor,sandwich;pack;cabinet;sort
+step2,VLM-HR-Cent,VLM,HR,Cent,RRT+HumanTerminal,VLM-self,false,sim,image/status/history,medication_sim;cooking_sim
+step2,VLM-HR-Dialog,VLM,HR,Dialog,RRT+HumanTerminal,VLM-self,false,sim,image/status/history/dialogue,medication_sim;cooking_sim
+step2,CRIE-BT-HR-Cent,CRIE-BT,HR,Cent,RRT+HumanTerminal,CodedSim,true,sim,image/status/history + monitor,medication_sim;cooking_sim
+step2,CRIE-BT-HR-Dialog,CRIE-BT,HR,Dialog,RRT+HumanTerminal,CodedSim,true,sim,image/status/history/dialogue + monitor,medication_sim;cooking_sim
+step3,VLM-HR-Cent,VLM,HR,Cent,LearnedSkill,VLM-self,false,real,camera/status/history,medication_real;cooking_real
+step3,VLM-HR-Dialog,VLM,HR,Dialog,LearnedSkill,VLM-self,false,real,camera/status/history/dialogue,medication_real;cooking_real
+step3,CRIE-BT-HR-Cent,CRIE-BT,HR,Cent,LearnedSkill,SARM,false,real,camera/status/history + SARM progress,medication_real;cooking_real
+step3,CRIE-BT-HR-Dialog,CRIE-BT,HR,Dialog,LearnedSkill,SARM,false,real,camera/status/history/dialogue + SARM progress,medication_real;cooking_real

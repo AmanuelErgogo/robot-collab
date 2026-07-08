@@ -195,3 +195,6 @@ test -f gemini_key.json && echo "gemini_key.json present" || echo "gemini_key.js
 - Gemini examples should use code paths that call `llm_api.py`, such as
   `run_metaworld_dialog.py`, unless `run_dialog.py` is later refactored.
 - Claude model names are rejected by `llm_api.py`; use OpenAI or Gemini.
+- The `prompting` package imports `openai` at module load, so `openai` must be
+  importable in the run env **even when using Gemini** (it is not called on the
+  Gemini path). Install once if missing: `pip install "openai==0.28.1"`.

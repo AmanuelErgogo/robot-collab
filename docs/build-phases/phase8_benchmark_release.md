@@ -92,7 +92,7 @@ python scripts/compare_rocobench_runs.py artifacts/benchmark/hold_debug artifact
 
 ## Full Demo Tutorial
 
-For a one-command walkthrough that starts the bridge, runs hold and RRT baselines on the same fixed variation, compares them, and writes a demo summary, see [docs/phase8_demo_tutorial.md](phase8_demo_tutorial.md).
+For a one-command walkthrough that starts the bridge, runs hold and RRT baselines on the same fixed variation, compares them, and writes a demo summary, see [docs/build-phases/phase8_demo_tutorial.md](phase8_demo_tutorial.md).
 
 ## CI Tiers
 
